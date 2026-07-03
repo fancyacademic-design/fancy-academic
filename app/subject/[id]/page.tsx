@@ -41,6 +41,18 @@ export default function SubjectPage() {
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [reviewLoading, setReviewLoading] = useState(false);
 
+  // ✅ التحقق من حجم الشاشة
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   useEffect(() => {
     const userData = localStorage.getItem('currentUser');
     if (!userData) {
@@ -267,7 +279,7 @@ export default function SubjectPage() {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>جاري تحميل المادة...</p>
+        <p style={isMobile ? {fontSize: '14px'} : {}}>جاري تحميل المادة...</p>
       </div>
     );
   }
@@ -284,11 +296,11 @@ export default function SubjectPage() {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <div style={styles.headerContent}>
-          <Link href="/platform" style={styles.backButton}>← العودة للمنصة</Link>
+        <div style={isMobile ? styles.headerContentMobile : styles.headerContent}>
+          <Link href="/platform" style={isMobile ? {...styles.backButton, fontSize: '12px'} : styles.backButton}>← العودة للمنصة</Link>
           <div style={styles.headerInfo}>
-            <span style={styles.subjectIcon}>{subject.icon || '📚'}</span>
-            <h1 style={styles.title}>{subject.name}</h1>
+            <span style={isMobile ? {...styles.subjectIcon, fontSize: '20px'} : styles.subjectIcon}>{subject.icon || '📚'}</span>
+            <h1 style={isMobile ? {...styles.title, fontSize: '18px'} : styles.title}>{subject.name}</h1>
           </div>
         </div>
       </header>
@@ -305,19 +317,21 @@ export default function SubjectPage() {
         )}
 
         {/* ✅ معلومات المادة */}
-        <div style={styles.subjectInfoCard}>
-          <div style={styles.subjectInfoHeader}>
-            <div style={{ ...styles.subjectIconLarge, background: subject.color || '#3b82f6' }}>
+        <div style={isMobile ? styles.subjectInfoCardMobile : styles.subjectInfoCard}>
+          <div style={isMobile ? styles.subjectInfoHeaderMobile : styles.subjectInfoHeader}>
+            <div style={{ 
+              ...(isMobile ? styles.subjectIconLargeMobile : styles.subjectIconLarge), 
+              background: subject.color || '#3b82f6' 
+            }}>
               {subject.icon || '📚'}
             </div>
             <div style={styles.subjectInfoText}>
-              <h2 style={styles.subjectName}>{subject.name}</h2>
-              <p style={styles.subjectDescription}>{subject.description || 'لا يوجد وصف'}</p>
-              <div style={styles.subjectMeta}>
-                <span>📚 {courses.length} كورسات</span>
-                <span>👨‍🏫 {subject.teacherName || 'لم يحدد'}</span>
-                <span>👥 {enrolledCount} طالب مسجل</span>
-                <span>✅ {activatedCount} كورس مفعل</span>
+              <h2 style={isMobile ? {...styles.subjectName, fontSize: '18px'} : styles.subjectName}>{subject.name}</h2>
+              <p style={isMobile ? {...styles.subjectDescription, fontSize: '13px'} : styles.subjectDescription}>{subject.description || 'لا يوجد وصف'}</p>
+              <div style={isMobile ? styles.subjectMetaMobile : styles.subjectMeta}>
+                <span style={isMobile ? {fontSize: '11px'} : {}}>📚 {courses.length} كورسات</span>
+                <span style={isMobile ? {fontSize: '11px'} : {}}>👨‍🏫 {subject.teacherName || 'لم يحدد'}</span>
+                <span style={isMobile ? {fontSize: '11px'} : {}}>👥 {enrolledCount} طالب</span>
               </div>
             </div>
           </div>
@@ -325,8 +339,8 @@ export default function SubjectPage() {
           {isEnrolled && (
             <div style={styles.progressSection}>
               <div style={styles.progressHeader}>
-                <span style={styles.progressLabel}>📊 تقدمك في المادة</span>
-                <span style={styles.progressPercentage}>{progress}%</span>
+                <span style={isMobile ? {...styles.progressLabel, fontSize: '12px'} : styles.progressLabel}>📊 تقدمك في المادة</span>
+                <span style={isMobile ? {...styles.progressPercentage, fontSize: '16px'} : styles.progressPercentage}>{progress}%</span>
               </div>
               <div style={styles.progressBar}>
                 <div style={{ ...styles.progressFill, width: `${progress}%` }} />
@@ -335,29 +349,29 @@ export default function SubjectPage() {
           )}
 
           {!isEnrolled && (
-            <button onClick={handleEnroll} style={styles.enrollButton}>
+            <button onClick={handleEnroll} style={isMobile ? {...styles.enrollButton, fontSize: '14px', padding: '10px 20px'} : styles.enrollButton}>
               ➕ التسجيل في المادة
             </button>
           )}
         </div>
 
         {/* ✅ قائمة الكورسات - ألوان ثابتة */}
-        <h2 style={styles.sectionTitle}>📖 الكورسات المتاحة</h2>
+        <h2 style={isMobile ? {...styles.sectionTitle, fontSize: '18px'} : styles.sectionTitle}>📖 الكورسات المتاحة</h2>
         
         {courses.length === 0 ? (
           <div style={styles.emptyState}>
-            <span style={styles.emptyIcon}>📭</span>
-            <p>لا توجد كورسات متاحة لمرحلتك</p>
-            <p style={styles.emptySub}>سيتم إضافة كورسات قريباً</p>
+            <span style={isMobile ? {...styles.emptyIcon, fontSize: '40px'} : styles.emptyIcon}>📭</span>
+            <p style={isMobile ? {fontSize: '14px'} : {}}>لا توجد كورسات متاحة لمرحلتك</p>
+            <p style={isMobile ? {...styles.emptySub, fontSize: '12px'} : styles.emptySub}>سيتم إضافة كورسات قريباً</p>
           </div>
         ) : (
-          <div style={styles.coursesGrid}>
+          <div style={isMobile ? styles.coursesGridMobile : styles.coursesGrid}>
             {courses.map((course) => (
               <Link
                 key={course.id}
                 href={course.isOpened ? `/course/${course.id}` : '#'}
                 style={{
-                  ...styles.courseCard,
+                  ...(isMobile ? styles.courseCardMobile : styles.courseCard),
                   borderColor: course.isOpened ? '#10b981' : 'rgba(255,255,255,0.05)',
                   opacity: course.isOpened ? 1 : 0.5,
                   cursor: course.isOpened ? 'pointer' : 'default',
@@ -370,34 +384,36 @@ export default function SubjectPage() {
                   }
                 }}
               >
-                <div style={styles.courseIconWrapper}>
-                  <span style={styles.courseIcon}>📘</span>
+                <div style={isMobile ? styles.courseIconWrapperMobile : styles.courseIconWrapper}>
+                  <span style={isMobile ? {...styles.courseIcon, fontSize: '18px'} : styles.courseIcon}>📘</span>
                 </div>
 
                 <div style={styles.courseContent}>
-                  <div style={styles.courseHeader}>
-                    <h3 style={styles.courseTitle}>{course.title}</h3>
+                  <div style={isMobile ? styles.courseHeaderMobile : styles.courseHeader}>
+                    <h3 style={isMobile ? {...styles.courseTitle, fontSize: '14px'} : styles.courseTitle}>{course.title}</h3>
                     <span style={{
                       ...styles.courseStatus,
                       background: course.isOpened ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
                       color: course.isOpened ? '#34d399' : '#f87171',
+                      fontSize: isMobile ? '10px' : '12px',
+                      padding: isMobile ? '2px 8px' : '2px 10px',
                     }}>
                       {course.isOpened ? '✅ مفتوح' : '🔒 مقفل'}
                     </span>
                   </div>
 
-                  <p style={styles.courseDesc}>{course.description || 'لا يوجد وصف'}</p>
+                  <p style={isMobile ? {...styles.courseDesc, fontSize: '11px', WebkitLineClamp: 1} : styles.courseDesc}>{course.description || 'لا يوجد وصف'}</p>
 
-                  <div style={styles.courseFooter}>
-                    <div style={styles.courseTags}>
-                      <span style={styles.gradeTag}>{getGradeLabel(course.grade)}</span>
+                  <div style={isMobile ? styles.courseFooterMobile : styles.courseFooter}>
+                    <div style={isMobile ? styles.courseTagsMobile : styles.courseTags}>
+                      <span style={isMobile ? {...styles.gradeTag, fontSize: '9px', padding: '1px 8px'} : styles.gradeTag}>{getGradeLabel(course.grade)}</span>
                       {course.price > 0 && (
-                        <span style={styles.priceTag}>💰 {course.price} ج.م</span>
+                        <span style={isMobile ? {...styles.priceTag, fontSize: '9px', padding: '1px 8px'} : styles.priceTag}>💰 {course.price} ج.م</span>
                       )}
-                      <span style={styles.lessonsTag}>📖 {course.lessonsCount || 0} درس</span>
+                      <span style={isMobile ? {...styles.lessonsTag, fontSize: '9px', padding: '1px 8px'} : styles.lessonsTag}>📖 {course.lessonsCount || 0}</span>
                     </div>
                     {course.isOpened && (
-                      <span style={styles.enterArrow}>← دخول</span>
+                      <span style={isMobile ? {...styles.enterArrow, fontSize: '11px'} : styles.enterArrow}>← دخول</span>
                     )}
                   </div>
                 </div>
@@ -407,14 +423,14 @@ export default function SubjectPage() {
         )}
 
         {/* ✅ قسم الآراء والتعليقات */}
-        <div style={styles.reviewsSection}>
-          <h2 style={styles.reviewsTitle}>💬 الآراء والتعليقات</h2>
+        <div style={isMobile ? styles.reviewsSectionMobile : styles.reviewsSection}>
+          <h2 style={isMobile ? {...styles.reviewsTitle, fontSize: '18px'} : styles.reviewsTitle}>💬 الآراء والتعليقات</h2>
           
           {/* ✅ نموذج إضافة تعليق */}
           {user && (
-            <div style={styles.reviewForm}>
-              <div style={styles.reviewRating}>
-                <label>⭐ تقييمك:</label>
+            <div style={isMobile ? styles.reviewFormMobile : styles.reviewForm}>
+              <div style={isMobile ? styles.reviewRatingMobile : styles.reviewRating}>
+                <label style={isMobile ? {fontSize: '13px'} : {}}>⭐ تقييمك:</label>
                 <div style={styles.starsContainer}>
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -423,6 +439,7 @@ export default function SubjectPage() {
                       style={{
                         ...styles.starButton,
                         color: star <= newReview.rating ? '#FFD700' : 'rgba(255,255,255,0.2)',
+                        fontSize: isMobile ? '20px' : '24px',
                       }}
                     >
                       ★
@@ -434,8 +451,8 @@ export default function SubjectPage() {
                 value={newReview.comment}
                 onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                 placeholder="اكتب تعليقك عن المادة..."
-                style={styles.reviewTextarea}
-                rows={3}
+                style={isMobile ? {...styles.reviewTextarea, fontSize: '13px', padding: '10px'} : styles.reviewTextarea}
+                rows={isMobile ? 2 : 3}
               />
               <button
                 onClick={addReview}
@@ -444,6 +461,8 @@ export default function SubjectPage() {
                   ...styles.reviewSubmit,
                   opacity: reviewLoading ? 0.5 : 1,
                   cursor: reviewLoading ? 'not-allowed' : 'pointer',
+                  fontSize: isMobile ? '14px' : '16px',
+                  padding: isMobile ? '8px 20px' : '10px 24px',
                 }}
               >
                 {reviewLoading ? '⏳ جاري الإرسال...' : '📨 إرسال التعليق'}
@@ -454,20 +473,20 @@ export default function SubjectPage() {
           {/* ✅ عرض التعليقات */}
           <div style={styles.reviewsList}>
             {reviews.length === 0 ? (
-              <div style={styles.noReviews}>لا توجد تعليقات بعد. كن أول من يكتب تعليقاً!</div>
+              <div style={isMobile ? {...styles.noReviews, fontSize: '13px'} : styles.noReviews}>لا توجد تعليقات بعد. كن أول من يكتب تعليقاً!</div>
             ) : (
               reviews.map((review) => (
-                <div key={review.id} style={styles.reviewCard}>
-                  <div style={styles.reviewHeader}>
-                    <span style={styles.reviewUser}>👤 {review.studentName}</span>
-                    <span style={styles.reviewRating}>{renderStars(review.rating)}</span>
-                    <span style={styles.reviewDate}>
+                <div key={review.id} style={isMobile ? styles.reviewCardMobile : styles.reviewCard}>
+                  <div style={isMobile ? styles.reviewHeaderMobile : styles.reviewHeader}>
+                    <span style={isMobile ? {...styles.reviewUser, fontSize: '13px'} : styles.reviewUser}>👤 {review.studentName}</span>
+                    <span style={isMobile ? {...styles.reviewRating, fontSize: '15px'} : styles.reviewRating}>{renderStars(review.rating)}</span>
+                    <span style={isMobile ? {...styles.reviewDate, fontSize: '10px'} : styles.reviewDate}>
                       {review.createdAt?.toDate?.() 
                         ? new Date(review.createdAt.toDate()).toLocaleDateString('ar-EG')
                         : ''}
                     </span>
                   </div>
-                  <p style={styles.reviewComment}>{review.comment}</p>
+                  <p style={isMobile ? {...styles.reviewComment, fontSize: '13px'} : styles.reviewComment}>{review.comment}</p>
                 </div>
               ))
             )}
@@ -521,6 +540,15 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerContentMobile: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px',
+    padding: '0 5px',
+  },
   backButton: {
     color: 'rgba(255,255,255,0.5)',
     textDecoration: 'none',
@@ -558,9 +586,21 @@ const styles = {
     marginBottom: '30px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  subjectInfoCardMobile: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '15px',
+    marginBottom: '20px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   subjectInfoHeader: {
     display: 'flex',
     gap: '20px',
+    alignItems: 'flex-start',
+  },
+  subjectInfoHeaderMobile: {
+    display: 'flex',
+    gap: '12px',
     alignItems: 'flex-start',
   },
   subjectIconLarge: {
@@ -571,6 +611,16 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '32px',
+    flexShrink: 0,
+  },
+  subjectIconLargeMobile: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '24px',
     flexShrink: 0,
   },
   subjectInfoText: {
@@ -590,6 +640,13 @@ const styles = {
     display: 'flex',
     gap: '15px',
     fontSize: '13px',
+    color: 'rgba(255,255,255,0.4)',
+    flexWrap: 'wrap' as const,
+  },
+  subjectMetaMobile: {
+    display: 'flex',
+    gap: '10px',
+    fontSize: '11px',
     color: 'rgba(255,255,255,0.4)',
     flexWrap: 'wrap' as const,
   },
@@ -649,6 +706,11 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
     gap: '16px',
   },
+  coursesGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '10px',
+  },
   courseCard: {
     display: 'flex',
     alignItems: 'center',
@@ -659,10 +721,30 @@ const styles = {
     border: '2px solid',
     transition: 'all 0.25s ease',
   },
+  courseCardMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px',
+    padding: '12px 14px',
+    border: '2px solid',
+    transition: 'all 0.25s ease',
+  },
   courseIconWrapper: {
     width: '48px',
     height: '48px',
     borderRadius: '12px',
+    background: 'rgba(59,130,246,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  courseIconWrapperMobile: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '8px',
     background: 'rgba(59,130,246,0.1)',
     display: 'flex',
     alignItems: 'center',
@@ -681,6 +763,13 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '4px',
+  },
+  courseHeaderMobile: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '2px',
+    gap: '8px',
   },
   courseTitle: {
     fontSize: '17px',
@@ -713,9 +802,21 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  courseFooterMobile: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '5px',
+  },
   courseTags: {
     display: 'flex',
     gap: '6px',
+    flexWrap: 'wrap' as const,
+  },
+  courseTagsMobile: {
+    display: 'flex',
+    gap: '4px',
     flexWrap: 'wrap' as const,
   },
   gradeTag: {
@@ -769,6 +870,13 @@ const styles = {
     borderRadius: '16px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  reviewsSectionMobile: {
+    marginTop: '30px',
+    padding: '15px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   reviewsTitle: {
     fontSize: '22px',
     fontWeight: 'bold',
@@ -782,11 +890,25 @@ const styles = {
     borderRadius: '12px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  reviewFormMobile: {
+    marginBottom: '15px',
+    padding: '12px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   reviewRating: {
     display: 'flex',
     alignItems: 'center',
     gap: '15px',
     marginBottom: '10px',
+  },
+  reviewRatingMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '8px',
+    flexWrap: 'wrap',
   },
   starsContainer: {
     display: 'flex',
@@ -834,12 +956,25 @@ const styles = {
     borderRadius: '10px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  reviewCardMobile: {
+    padding: '12px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '8px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   reviewHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     flexWrap: 'wrap' as const,
     marginBottom: '8px',
+  },
+  reviewHeaderMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap' as const,
+    marginBottom: '6px',
   },
   reviewUser: {
     fontSize: '15px',
