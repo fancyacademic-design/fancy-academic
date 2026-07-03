@@ -45,7 +45,7 @@ export default function Home() {
               <span style={styles.logoIcon}>✦</span>
             </div>
             <div style={styles.logoText}>
-              <h1 style={isMobile ? styles.logoMainMobile : styles.logoMain}>Fancy Academic</h1>
+              <h1 style={styles.logoMain}>Fancy Academic</h1>
               <p style={styles.logoSub}>منصة التعليم الذكية</p>
             </div>
           </div>
@@ -69,21 +69,21 @@ export default function Home() {
               منصة تعليمية متطورة
             </div>
 
-            <h1 style={isMobile ? styles.heroTitleMobile : styles.heroTitle}>
+            <h1 style={styles.heroTitle}>
               تعلم بذكاء مع
               <span style={styles.heroHighlight}> Fancy Academic</span>
             </h1>
 
-            <p style={isMobile ? styles.heroDescriptionMobile : styles.heroDescription}>
+            <p style={styles.heroDescription}>
               منصة تعليمية ذكية تجمع لك أفضل المدرسين المتخصصين في المواد العلمية،
               مع نظام متابعة وتقييم متطور يحفزك على التفوق
             </p>
 
             <div style={isMobile ? styles.heroButtonsMobile : styles.heroButtons}>
-              <button style={isMobile ? styles.primaryButtonMobile : styles.primaryButton} onClick={() => router.push('/register')}>
+              <button style={styles.primaryButton} onClick={() => router.push('/register')}>
                 ✨ ابدأ رحلتك الآن
               </button>
-              <button style={isMobile ? styles.secondaryButtonMobile : styles.secondaryButton} onClick={() => router.push('/login')}>
+              <button style={styles.secondaryButton} onClick={() => router.push('/login')}>
                 ← تسجيل الدخول
               </button>
             </div>
@@ -117,7 +117,7 @@ export default function Home() {
         <div style={styles.features}>
           <div style={styles.featuresHeader}>
             <span style={styles.featuresBadge}>✦ مميزاتنا</span>
-            <h2 style={isMobile ? styles.featuresTitleMobile : styles.featuresTitle}>لماذا تختارنا؟</h2>
+            <h2 style={styles.featuresTitle}>لماذا تختارنا؟</h2>
           </div>
 
           <div style={isMobile ? styles.featuresGridMobile : styles.featuresGrid}>
@@ -150,8 +150,8 @@ export default function Home() {
         <div style={styles.subjectsSection}>
           <div style={styles.sectionHeader}>
             <span style={styles.sectionBadge}>✦ المواد</span>
-            <h2 style={isMobile ? styles.sectionTitleMobile : styles.sectionTitle}>مواد تعليمية متخصصة</h2>
-            <p style={isMobile ? styles.sectionSubtitleMobile : styles.sectionSubtitle}>
+            <h2 style={styles.sectionTitle}>مواد تعليمية متخصصة</h2>
+            <p style={styles.sectionSubtitle}>
               نوفر لك مجموعة متنوعة من المواد التعليمية المتخصصة التي تلبي احتياجاتك،
               مع محتوى متكامل يضمن لك الفهم العميق والإتقان
             </p>
@@ -187,8 +187,8 @@ export default function Home() {
         <div style={styles.supportSection}>
           <div style={styles.supportCard}>
             <div style={styles.supportContent}>
-              <h2 style={isMobile ? styles.supportTitleMobile : styles.supportTitle}>💬 تواصل مع الدعم</h2>
-              <p style={isMobile ? styles.supportTextMobile : styles.supportText}>
+              <h2 style={styles.supportTitle}>💬 تواصل مع الدعم</h2>
+              <p style={styles.supportText}>
                 لديك استفسار أو تحتاج مساعدة؟ فريق الدعم جاهز لمساعدتك في أي وقت
               </p>
               <a 
@@ -205,9 +205,9 @@ export default function Home() {
         <div style={styles.ctaSection}>
           <div style={styles.ctaCard}>
             <div style={styles.ctaContent}>
-              <h2 style={isMobile ? styles.ctaTitleMobile : styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
-              <p style={isMobile ? styles.ctaTextMobile : styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
-              <button style={isMobile ? styles.ctaButtonMobile : styles.ctaButton} onClick={() => router.push('/register')}>
+              <h2 style={styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
+              <p style={styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
+              <button style={styles.ctaButton} onClick={() => router.push('/register')}>
                 ✦ إنشاء حساب مجاني
               </button>
             </div>
@@ -255,6 +255,96 @@ export default function Home() {
         @keyframes pulse {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.6; }
+        }
+
+        /* ✅ ✅ التعديلات بس للموبايل - الكمبيوتر زي ما هو */
+        @media (max-width: 768px) {
+          .hero-title {
+            font-size: 28px !important;
+          }
+          .hero-description {
+            font-size: 14px !important;
+          }
+          .primary-button {
+            padding: 10px 20px !important;
+            font-size: 13px !important;
+          }
+          .secondary-button {
+            padding: 10px 20px !important;
+            font-size: 13px !important;
+          }
+          .features-title {
+            font-size: 24px !important;
+          }
+          .section-title {
+            font-size: 24px !important;
+          }
+          .section-subtitle {
+            font-size: 13px !important;
+          }
+          .support-title {
+            font-size: 20px !important;
+          }
+          .support-text {
+            font-size: 13px !important;
+          }
+          .cta-title {
+            font-size: 22px !important;
+          }
+          .cta-text {
+            font-size: 13px !important;
+          }
+          .cta-button {
+            padding: 10px 20px !important;
+            font-size: 13px !important;
+          }
+          .logo-main {
+            font-size: 16px !important;
+          }
+          .nav-button {
+            font-size: 12px !important;
+            padding: 6px 14px !important;
+          }
+          .nav-button-primary {
+            font-size: 12px !important;
+            padding: 6px 14px !important;
+          }
+          .stat-number {
+            font-size: 20px !important;
+          }
+          .stat-label {
+            font-size: 10px !important;
+          }
+          .feature-title {
+            font-size: 14px !important;
+          }
+          .feature-text {
+            font-size: 11px !important;
+          }
+          .subject-title {
+            font-size: 14px !important;
+          }
+          .subject-desc {
+            font-size: 10px !important;
+          }
+          .main-icon {
+            font-size: 50px !important;
+          }
+          .image-text {
+            font-size: 13px !important;
+          }
+          .footer-title {
+            font-size: 16px !important;
+          }
+          .footer-text {
+            font-size: 12px !important;
+          }
+          .footer-link {
+            font-size: 12px !important;
+          }
+          .copyright {
+            font-size: 10px !important;
+          }
         }
       `}</style>
     </div>
@@ -344,13 +434,6 @@ const styles: any = {
   },
   logoMain: {
     fontSize: '22px',
-    fontWeight: '800',
-    color: 'white',
-    margin: 0,
-    lineHeight: 1.2,
-  },
-  logoMainMobile: {
-    fontSize: '16px',
     fontWeight: '800',
     color: 'white',
     margin: 0,
@@ -454,12 +537,6 @@ const styles: any = {
     lineHeight: 1.1,
     margin: 0,
   },
-  heroTitleMobile: {
-    fontSize: '28px',
-    fontWeight: '800',
-    lineHeight: 1.2,
-    margin: 0,
-  },
   heroHighlight: {
     display: 'block',
     background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
@@ -471,12 +548,6 @@ const styles: any = {
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 1.8,
     maxWidth: '500px',
-  },
-  heroDescriptionMobile: {
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 1.8,
-    maxWidth: '100%',
   },
   heroButtons: {
     display: 'flex',
@@ -506,21 +577,6 @@ const styles: any = {
     boxShadow: '0 4px 25px rgba(255, 215, 0, 0.25)',
     transition: 'all 0.3s',
   },
-  primaryButtonMobile: {
-    padding: '10px 20px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    color: '#0a0a14',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '13px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    boxShadow: '0 4px 25px rgba(255, 215, 0, 0.25)',
-    transition: 'all 0.3s',
-  },
   secondaryButton: {
     padding: '14px 30px',
     background: 'transparent',
@@ -533,20 +589,6 @@ const styles: any = {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    transition: 'all 0.3s',
-  },
-  secondaryButtonMobile: {
-    padding: '10px 20px',
-    background: 'transparent',
-    color: 'white',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '50px',
-    fontSize: '13px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
     transition: 'all 0.3s',
   },
   stats: {
@@ -636,11 +678,6 @@ const styles: any = {
     fontWeight: '800',
     margin: 0,
   },
-  featuresTitleMobile: {
-    fontSize: '24px',
-    fontWeight: '800',
-    margin: 0,
-  },
   featuresGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
@@ -697,25 +734,12 @@ const styles: any = {
     fontWeight: '800',
     margin: 0,
   },
-  sectionTitleMobile: {
-    fontSize: '24px',
-    fontWeight: '800',
-    margin: 0,
-  },
   sectionSubtitle: {
     fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.4)',
     maxWidth: '600px',
     margin: '10px auto 0',
     lineHeight: 1.8,
-  },
-  sectionSubtitleMobile: {
-    fontSize: '13px',
-    color: 'rgba(255, 255, 255, 0.4)',
-    maxWidth: '100%',
-    margin: '10px auto 0',
-    lineHeight: 1.8,
-    padding: '0 10px',
   },
   subjectsGrid: {
     display: 'grid',
@@ -769,21 +793,10 @@ const styles: any = {
     fontWeight: '700',
     marginBottom: '15px',
   },
-  supportTitleMobile: {
-    fontSize: '20px',
-    fontWeight: '700',
-    marginBottom: '12px',
-  },
   supportText: {
     fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: '25px',
-    lineHeight: 1.8,
-  },
-  supportTextMobile: {
-    fontSize: '13px',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: '20px',
     lineHeight: 1.8,
   },
   supportButton: {
@@ -817,20 +830,10 @@ const styles: any = {
     fontWeight: '800',
     marginBottom: '15px',
   },
-  ctaTitleMobile: {
-    fontSize: '22px',
-    fontWeight: '800',
-    marginBottom: '12px',
-  },
   ctaText: {
     fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: '25px',
-  },
-  ctaTextMobile: {
-    fontSize: '13px',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: '20px',
   },
   ctaButton: {
     padding: '14px 32px',
@@ -839,18 +842,6 @@ const styles: any = {
     border: 'none',
     borderRadius: '50px',
     fontSize: '16px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    boxShadow: '0 4px 25px rgba(255, 215, 0, 0.2)',
-    transition: 'all 0.3s',
-  },
-  ctaButtonMobile: {
-    padding: '10px 20px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    color: '#0a0a14',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '13px',
     fontWeight: '700',
     cursor: 'pointer',
     boxShadow: '0 4px 25px rgba(255, 215, 0, 0.2)',
