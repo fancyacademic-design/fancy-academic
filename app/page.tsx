@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -7,13 +6,24 @@ import { useRouter } from 'next/navigation';
 export default function Home() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', checkMobile);
+    };
   }, []);
 
   return (
@@ -29,22 +39,26 @@ export default function Home() {
           borderBottom: isScrolled ? '1px solid rgba(255, 215, 0, 0.1)' : 'none',
         }}
       >
-        <div style={styles.headerContent}>
+        <div style={isMobile ? styles.headerContentMobile : styles.headerContent}>
           <div style={styles.logo}>
             <div style={styles.logoIconWrapper}>
               <span style={styles.logoIcon}>✦</span>
             </div>
             <div style={styles.logoText}>
-              <h1 style={styles.logoMain}>Fancy Academic</h1>
+              <h1 style={isMobile ? {...styles.logoMain, fontSize: '16px'} : styles.logoMain}>
+                Fancy Academic
+              </h1>
               <p style={styles.logoSub}>منصة التعليم الذكية</p>
             </div>
           </div>
 
-          <nav style={styles.nav}>
-            <button style={styles.navButton} onClick={() => router.push('/login')}>
+          <nav style={isMobile ? styles.navMobile : styles.nav}>
+            <button style={isMobile ? {...styles.navButton, fontSize: '12px', padding: '6px 14px'} : styles.navButton} 
+              onClick={() => router.push('/login')}>
               تسجيل الدخول
             </button>
-            <button style={styles.navButtonPrimary} onClick={() => router.push('/register')}>
+            <button style={isMobile ? {...styles.navButtonPrimary, fontSize: '12px', padding: '6px 14px'} : styles.navButtonPrimary} 
+              onClick={() => router.push('/register')}>
               انضم الآن
             </button>
           </nav>
@@ -52,44 +66,46 @@ export default function Home() {
       </header>
 
       <main style={styles.main}>
-        <div style={styles.hero}>
+        <div style={isMobile ? styles.heroMobile : styles.hero}>
           <div style={styles.heroContent}>
             <div style={styles.heroBadge}>
               <span style={styles.badgeDot}></span>
               منصة تعليمية متطورة
             </div>
 
-            <h1 style={styles.heroTitle}>
+            <h1 style={isMobile ? {...styles.heroTitle, fontSize: '28px'} : styles.heroTitle}>
               تعلم بذكاء مع
               <span style={styles.heroHighlight}> Fancy Academic</span>
             </h1>
 
-            <p style={styles.heroDescription}>
+            <p style={isMobile ? {...styles.heroDescription, fontSize: '14px'} : styles.heroDescription}>
               منصة تعليمية ذكية تجمع لك أفضل المدرسين المتخصصين في المواد العلمية،
               مع نظام متابعة وتقييم متطور يحفزك على التفوق
             </p>
 
-            <div style={styles.heroButtons}>
-              <button style={styles.primaryButton} onClick={() => router.push('/register')}>
+            <div style={isMobile ? styles.heroButtonsMobile : styles.heroButtons}>
+              <button style={isMobile ? {...styles.primaryButton, fontSize: '13px', padding: '10px 20px'} : styles.primaryButton} 
+                onClick={() => router.push('/register')}>
                 ✨ ابدأ رحلتك الآن
               </button>
-              <button style={styles.secondaryButton} onClick={() => router.push('/login')}>
+              <button style={isMobile ? {...styles.secondaryButton, fontSize: '13px', padding: '10px 20px'} : styles.secondaryButton} 
+                onClick={() => router.push('/login')}>
                 ← تسجيل الدخول
               </button>
             </div>
 
-            <div style={styles.stats}>
+            <div style={isMobile ? styles.statsMobile : styles.stats}>
               <div style={styles.statItem}>
-                <span style={styles.statNumber}>✦</span>
-                <span style={styles.statLabel}>تجربة تعلم فريدة</span>
+                <span style={isMobile ? {...styles.statNumber, fontSize: '20px'} : styles.statNumber}>✦</span>
+                <span style={isMobile ? {...styles.statLabel, fontSize: '10px'} : styles.statLabel}>تجربة تعلم فريدة</span>
               </div>
               <div style={styles.statItem}>
-                <span style={styles.statNumber}>✦</span>
-                <span style={styles.statLabel}>مدرسون متخصصون</span>
+                <span style={isMobile ? {...styles.statNumber, fontSize: '20px'} : styles.statNumber}>✦</span>
+                <span style={isMobile ? {...styles.statLabel, fontSize: '10px'} : styles.statLabel}>مدرسون متخصصون</span>
               </div>
               <div style={styles.statItem}>
-                <span style={styles.statNumber}>✦</span>
-                <span style={styles.statLabel}>نظام تحفيزي متطور</span>
+                <span style={isMobile ? {...styles.statNumber, fontSize: '20px'} : styles.statNumber}>✦</span>
+                <span style={isMobile ? {...styles.statLabel, fontSize: '10px'} : styles.statLabel}>نظام تحفيزي متطور</span>
               </div>
             </div>
           </div>
@@ -97,8 +113,8 @@ export default function Home() {
           <div style={styles.heroImage}>
             <div style={styles.imageWrapper}>
               <div style={styles.imageContent}>
-                <div style={styles.mainIcon}>📚</div>
-                <p style={styles.imageText}>تعلم بذكاء، تفوق بثقة</p>
+                <div style={isMobile ? {...styles.mainIcon, fontSize: '50px'} : styles.mainIcon}>📚</div>
+                <p style={isMobile ? {...styles.imageText, fontSize: '13px'} : styles.imageText}>تعلم بذكاء، تفوق بثقة</p>
               </div>
             </div>
           </div>
@@ -107,32 +123,32 @@ export default function Home() {
         <div style={styles.features}>
           <div style={styles.featuresHeader}>
             <span style={styles.featuresBadge}>✦ مميزاتنا</span>
-            <h2 style={styles.featuresTitle}>لماذا تختارنا؟</h2>
+            <h2 style={isMobile ? {...styles.featuresTitle, fontSize: '24px'} : styles.featuresTitle}>لماذا تختارنا؟</h2>
           </div>
 
-          <div style={styles.featuresGrid}>
+          <div style={isMobile ? styles.featuresGridMobile : styles.featuresGrid}>
             <div style={styles.featureCard}>
               <div style={styles.featureIconWrapper}>👨‍🏫</div>
-              <h3 style={styles.featureTitle}>مدرسين متخصصين</h3>
-              <p style={styles.featureText}>كل مادة يدرسها مدرس متخصص مع متابعة فردية</p>
+              <h3 style={isMobile ? {...styles.featureTitle, fontSize: '14px'} : styles.featureTitle}>مدرسين متخصصين</h3>
+              <p style={isMobile ? {...styles.featureText, fontSize: '11px'} : styles.featureText}>كل مادة يدرسها مدرس متخصص مع متابعة فردية</p>
             </div>
 
             <div style={styles.featureCard}>
               <div style={styles.featureIconWrapper}>📖</div>
-              <h3 style={styles.featureTitle}>محتوى متميز</h3>
-              <p style={styles.featureText}>دروس فيديو، واجبات، امتحانات، وملفات تفاعلية</p>
+              <h3 style={isMobile ? {...styles.featureTitle, fontSize: '14px'} : styles.featureTitle}>محتوى متميز</h3>
+              <p style={isMobile ? {...styles.featureText, fontSize: '11px'} : styles.featureText}>دروس فيديو، واجبات، امتحانات، وملفات تفاعلية</p>
             </div>
 
             <div style={styles.featureCard}>
               <div style={styles.featureIconWrapper}>📊</div>
-              <h3 style={styles.featureTitle}>متابعة دقيقة</h3>
-              <p style={styles.featureText}>تقارير مفصلة عن تقدمك ونقاط قوتك وضعفك</p>
+              <h3 style={isMobile ? {...styles.featureTitle, fontSize: '14px'} : styles.featureTitle}>متابعة دقيقة</h3>
+              <p style={isMobile ? {...styles.featureText, fontSize: '11px'} : styles.featureText}>تقارير مفصلة عن تقدمك ونقاط قوتك وضعفك</p>
             </div>
 
             <div style={styles.featureCard}>
               <div style={styles.featureIconWrapper}>🏆</div>
-              <h3 style={styles.featureTitle}>نظام تحفيزي</h3>
-              <p style={styles.featureText}>نقاط ومكافآت وشارات تحفزك على الاستمرار</p>
+              <h3 style={isMobile ? {...styles.featureTitle, fontSize: '14px'} : styles.featureTitle}>نظام تحفيزي</h3>
+              <p style={isMobile ? {...styles.featureText, fontSize: '11px'} : styles.featureText}>نقاط ومكافآت وشارات تحفزك على الاستمرار</p>
             </div>
           </div>
         </div>
@@ -140,36 +156,36 @@ export default function Home() {
         <div style={styles.subjectsSection}>
           <div style={styles.sectionHeader}>
             <span style={styles.sectionBadge}>✦ المواد</span>
-            <h2 style={styles.sectionTitle}>مواد تعليمية متخصصة</h2>
-            <p style={styles.sectionSubtitle}>
+            <h2 style={isMobile ? {...styles.sectionTitle, fontSize: '24px'} : styles.sectionTitle}>مواد تعليمية متخصصة</h2>
+            <p style={isMobile ? {...styles.sectionSubtitle, fontSize: '13px'} : styles.sectionSubtitle}>
               نوفر لك مجموعة متنوعة من المواد التعليمية المتخصصة التي تلبي احتياجاتك،
               مع محتوى متكامل يضمن لك الفهم العميق والإتقان
             </p>
           </div>
 
-          <div style={styles.subjectsGrid}>
+          <div style={isMobile ? styles.subjectsGridMobile : styles.subjectsGrid}>
             <div style={styles.subjectCard}>
               <div style={styles.subjectIcon}>📐</div>
-              <h3 style={styles.subjectTitle}>الرياضيات</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
+              <h3 style={isMobile ? {...styles.subjectTitle, fontSize: '14px'} : styles.subjectTitle}>الرياضيات</h3>
+              <p style={isMobile ? {...styles.subjectDesc, fontSize: '10px'} : styles.subjectDesc}>قريباً</p>
             </div>
 
             <div style={styles.subjectCard}>
               <div style={styles.subjectIcon}>🧪</div>
-              <h3 style={styles.subjectTitle}>الكيمياء</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
+              <h3 style={isMobile ? {...styles.subjectTitle, fontSize: '14px'} : styles.subjectTitle}>الكيمياء</h3>
+              <p style={isMobile ? {...styles.subjectDesc, fontSize: '10px'} : styles.subjectDesc}>قريباً</p>
             </div>
 
             <div style={styles.subjectCard}>
               <div style={styles.subjectIcon}>⚛️</div>
-              <h3 style={styles.subjectTitle}>الفيزياء</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
+              <h3 style={isMobile ? {...styles.subjectTitle, fontSize: '14px'} : styles.subjectTitle}>الفيزياء</h3>
+              <p style={isMobile ? {...styles.subjectDesc, fontSize: '10px'} : styles.subjectDesc}>قريباً</p>
             </div>
 
             <div style={styles.subjectCard}>
               <div style={styles.subjectIcon}>🧬</div>
-              <h3 style={styles.subjectTitle}>الأحياء</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
+              <h3 style={isMobile ? {...styles.subjectTitle, fontSize: '14px'} : styles.subjectTitle}>الأحياء</h3>
+              <p style={isMobile ? {...styles.subjectDesc, fontSize: '10px'} : styles.subjectDesc}>قريباً</p>
             </div>
           </div>
         </div>
@@ -177,11 +193,15 @@ export default function Home() {
         <div style={styles.supportSection}>
           <div style={styles.supportCard}>
             <div style={styles.supportContent}>
-              <h2 style={styles.supportTitle}>💬 تواصل مع الدعم</h2>
-              <p style={styles.supportText}>
+              <h2 style={isMobile ? {...styles.supportTitle, fontSize: '20px'} : styles.supportTitle}>💬 تواصل مع الدعم</h2>
+              <p style={isMobile ? {...styles.supportText, fontSize: '13px'} : styles.supportText}>
                 لديك استفسار أو تحتاج مساعدة؟ فريق الدعم جاهز لمساعدتك في أي وقت
               </p>
-              <a href="#" style={styles.supportButton}>
+              <a 
+                href="https://wa.me/message/UKASWZCU5BNLN1?src=qr" 
+                target="_blank" 
+                style={styles.supportButton}
+              >
                 تواصل معنا
               </a>
             </div>
@@ -191,9 +211,10 @@ export default function Home() {
         <div style={styles.ctaSection}>
           <div style={styles.ctaCard}>
             <div style={styles.ctaContent}>
-              <h2 style={styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
-              <p style={styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
-              <button style={styles.ctaButton} onClick={() => router.push('/register')}>
+              <h2 style={isMobile ? {...styles.ctaTitle, fontSize: '22px'} : styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
+              <p style={isMobile ? {...styles.ctaText, fontSize: '13px'} : styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
+              <button style={isMobile ? {...styles.ctaButton, fontSize: '13px', padding: '10px 20px'} : styles.ctaButton} 
+                onClick={() => router.push('/register')}>
                 ✦ إنشاء حساب مجاني
               </button>
             </div>
@@ -203,46 +224,33 @@ export default function Home() {
 
       <footer style={styles.footer}>
         <div style={styles.footerContent}>
-          <div style={styles.footerTop}>
+          <div style={isMobile ? styles.footerTopMobile : styles.footerTop}>
             <div style={styles.footerInfo}>
               <div style={styles.footerLogo}>
                 <span style={styles.footerLogoIcon}>✦</span>
-                <h3 style={styles.footerTitle}>Fancy Academic</h3>
+                <h3 style={isMobile ? {...styles.footerTitle, fontSize: '16px'} : styles.footerTitle}>Fancy Academic</h3>
               </div>
-              <p style={styles.footerText}>
+              <p style={isMobile ? {...styles.footerText, fontSize: '12px'} : styles.footerText}>
                 منصة التعليم الذكية التي تجمع بين المدرسين المتخصصين والتقنيات الحديثة
               </p>
             </div>
 
             <div style={styles.footerLinks}>
               <h4 style={styles.footerLinksTitle}>روابط سريعة</h4>
-              <Link href="/login" style={styles.footerLink}>تسجيل الدخول</Link>
-              <Link href="/register" style={styles.footerLink}>إنشاء حساب</Link>
-              <a href="#" style={styles.footerLink}>الدعم الفني</a>
+              <Link href="/login" style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>تسجيل الدخول</Link>
+              <Link href="/register" style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>إنشاء حساب</Link>
+              <a href="https://wa.me/message/UKASWZCU5BNLN1?src=qr" target="_blank" 
+                style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>الدعم الفني</a>
             </div>
           </div>
 
           <div style={styles.footerBottom}>
-            <p style={styles.copyright}>© {new Date().getFullYear()} Fancy Academic. جميع الحقوق محفوظة</p>
+            <p style={isMobile ? {...styles.copyright, fontSize: '10px'} : styles.copyright}>
+              © {new Date().getFullYear()} Fancy Academic. جميع الحقوق محفوظة
+            </p>
           </div>
         </div>
       </footer>
-
-      <style jsx>{`
-        @keyframes gradientMove {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -293,6 +301,16 @@ const styles: any = {
     position: 'relative',
     zIndex: 2,
   },
+  headerContentMobile: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '12px',
+    position: 'relative',
+    zIndex: 2,
+  },
   logo: {
     display: 'flex',
     alignItems: 'center',
@@ -338,6 +356,13 @@ const styles: any = {
     gap: '12px',
     alignItems: 'center',
   },
+  navMobile: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
   navButton: {
     padding: '8px 18px',
     background: 'transparent',
@@ -375,6 +400,14 @@ const styles: any = {
     alignItems: 'center',
     marginBottom: '80px',
     minHeight: 'calc(100vh - 200px)',
+  },
+  heroMobile: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '30px',
+    alignItems: 'center',
+    marginBottom: '60px',
+    minHeight: 'auto',
   },
   heroContent: {
     display: 'flex',
@@ -426,6 +459,13 @@ const styles: any = {
     flexWrap: 'wrap',
     marginTop: '10px',
   },
+  heroButtonsMobile: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
+    marginTop: '10px',
+    justifyContent: 'center',
+  },
   primaryButton: {
     padding: '14px 30px',
     background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
@@ -462,10 +502,20 @@ const styles: any = {
     paddingTop: '20px',
     borderTop: '1px solid rgba(255, 255, 255, 0.05)',
   },
+  statsMobile: {
+    display: 'flex',
+    gap: '15px',
+    marginTop: '10px',
+    paddingTop: '20px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
   statItem: {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
+    alignItems: 'center',
   },
   statNumber: {
     fontSize: '28px',
@@ -537,9 +587,14 @@ const styles: any = {
     gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '25px',
   },
+  featuresGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '12px',
+  },
   featureCard: {
     background: 'rgba(255, 255, 255, 0.02)',
-    padding: '30px 20px',
+    padding: '25px 15px',
     borderRadius: '20px',
     border: '1px solid rgba(255, 255, 255, 0.03)',
     textAlign: 'center',
@@ -595,9 +650,14 @@ const styles: any = {
     gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '20px',
   },
+  subjectsGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '12px',
+  },
   subjectCard: {
     background: 'rgba(255, 255, 255, 0.02)',
-    padding: '30px 20px',
+    padding: '25px 15px',
     borderRadius: '20px',
     border: '1px solid rgba(255, 255, 255, 0.03)',
     textAlign: 'center',
@@ -606,12 +666,12 @@ const styles: any = {
   subjectIcon: {
     fontSize: '48px',
     display: 'block',
-    marginBottom: '15px',
+    marginBottom: '12px',
   },
   subjectTitle: {
     fontSize: '20px',
     fontWeight: '700',
-    marginBottom: '8px',
+    marginBottom: '6px',
   },
   subjectDesc: {
     fontSize: '13px',
@@ -623,7 +683,7 @@ const styles: any = {
   },
   supportCard: {
     background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 107, 0, 0.03))',
-    padding: '40px 30px',
+    padding: '40px 20px',
     borderRadius: '24px',
     border: '1px solid rgba(255, 215, 0, 0.08)',
     textAlign: 'center',
@@ -660,7 +720,7 @@ const styles: any = {
   },
   ctaCard: {
     background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 107, 0, 0.05))',
-    padding: '50px 30px',
+    padding: '50px 20px',
     borderRadius: '30px',
     border: '1px solid rgba(255, 215, 0, 0.05)',
     textAlign: 'center',
@@ -707,6 +767,13 @@ const styles: any = {
     gridTemplateColumns: '2fr 1fr',
     gap: '40px',
     marginBottom: '30px',
+  },
+  footerTopMobile: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '25px',
+    marginBottom: '25px',
+    textAlign: 'center',
   },
   footerInfo: {
     display: 'flex',
