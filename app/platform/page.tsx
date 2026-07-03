@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -46,7 +45,7 @@ export default function Home() {
               <span style={styles.logoIcon}>✦</span>
             </div>
             <div style={styles.logoText}>
-              <h1 style={styles.logoMain}>Fancy Academic</h1>
+              <h1 style={isMobile ? styles.logoMainMobile : styles.logoMain}>Fancy Academic</h1>
               <p style={styles.logoSub}>منصة التعليم الذكية</p>
             </div>
           </div>
@@ -70,21 +69,21 @@ export default function Home() {
               منصة تعليمية متطورة
             </div>
 
-            <h1 style={styles.heroTitle}>
+            <h1 style={isMobile ? styles.heroTitleMobile : styles.heroTitle}>
               تعلم بذكاء مع
               <span style={styles.heroHighlight}> Fancy Academic</span>
             </h1>
 
-            <p style={styles.heroDescription}>
+            <p style={isMobile ? styles.heroDescriptionMobile : styles.heroDescription}>
               منصة تعليمية ذكية تجمع لك أفضل المدرسين المتخصصين في المواد العلمية،
               مع نظام متابعة وتقييم متطور يحفزك على التفوق
             </p>
 
             <div style={isMobile ? styles.heroButtonsMobile : styles.heroButtons}>
-              <button style={styles.primaryButton} onClick={() => router.push('/register')}>
+              <button style={isMobile ? styles.primaryButtonMobile : styles.primaryButton} onClick={() => router.push('/register')}>
                 ✨ ابدأ رحلتك الآن
               </button>
-              <button style={styles.secondaryButton} onClick={() => router.push('/login')}>
+              <button style={isMobile ? styles.secondaryButtonMobile : styles.secondaryButton} onClick={() => router.push('/login')}>
                 ← تسجيل الدخول
               </button>
             </div>
@@ -118,7 +117,7 @@ export default function Home() {
         <div style={styles.features}>
           <div style={styles.featuresHeader}>
             <span style={styles.featuresBadge}>✦ مميزاتنا</span>
-            <h2 style={styles.featuresTitle}>لماذا تختارنا؟</h2>
+            <h2 style={isMobile ? styles.featuresTitleMobile : styles.featuresTitle}>لماذا تختارنا؟</h2>
           </div>
 
           <div style={isMobile ? styles.featuresGridMobile : styles.featuresGrid}>
@@ -151,8 +150,8 @@ export default function Home() {
         <div style={styles.subjectsSection}>
           <div style={styles.sectionHeader}>
             <span style={styles.sectionBadge}>✦ المواد</span>
-            <h2 style={styles.sectionTitle}>مواد تعليمية متخصصة</h2>
-            <p style={styles.sectionSubtitle}>
+            <h2 style={isMobile ? styles.sectionTitleMobile : styles.sectionTitle}>مواد تعليمية متخصصة</h2>
+            <p style={isMobile ? styles.sectionSubtitleMobile : styles.sectionSubtitle}>
               نوفر لك مجموعة متنوعة من المواد التعليمية المتخصصة التي تلبي احتياجاتك،
               مع محتوى متكامل يضمن لك الفهم العميق والإتقان
             </p>
@@ -188,8 +187,8 @@ export default function Home() {
         <div style={styles.supportSection}>
           <div style={styles.supportCard}>
             <div style={styles.supportContent}>
-              <h2 style={styles.supportTitle}>💬 تواصل مع الدعم</h2>
-              <p style={styles.supportText}>
+              <h2 style={isMobile ? styles.supportTitleMobile : styles.supportTitle}>💬 تواصل مع الدعم</h2>
+              <p style={isMobile ? styles.supportTextMobile : styles.supportText}>
                 لديك استفسار أو تحتاج مساعدة؟ فريق الدعم جاهز لمساعدتك في أي وقت
               </p>
               <a 
@@ -206,9 +205,9 @@ export default function Home() {
         <div style={styles.ctaSection}>
           <div style={styles.ctaCard}>
             <div style={styles.ctaContent}>
-              <h2 style={styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
-              <p style={styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
-              <button style={styles.ctaButton} onClick={() => router.push('/register')}>
+              <h2 style={isMobile ? styles.ctaTitleMobile : styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
+              <p style={isMobile ? styles.ctaTextMobile : styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
+              <button style={isMobile ? styles.ctaButtonMobile : styles.ctaButton} onClick={() => router.push('/register')}>
                 ✦ إنشاء حساب مجاني
               </button>
             </div>
@@ -344,14 +343,21 @@ const styles: any = {
     flexDirection: 'column',
   },
   logoMain: {
-    fontSize: 'clamp(16px, 2vw, 22px)',
+    fontSize: '22px',
+    fontWeight: '800',
+    color: 'white',
+    margin: 0,
+    lineHeight: 1.2,
+  },
+  logoMainMobile: {
+    fontSize: '16px',
     fontWeight: '800',
     color: 'white',
     margin: 0,
     lineHeight: 1.2,
   },
   logoSub: {
-    fontSize: 'clamp(8px, 0.8vw, 10px)',
+    fontSize: '10px',
     color: '#FFD700',
     margin: 0,
     letterSpacing: '1px',
@@ -379,7 +385,7 @@ const styles: any = {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.3s',
-    fontSize: 'clamp(12px, 1.2vw, 14px)',
+    fontSize: '14px',
   },
   navButtonPrimary: {
     padding: '8px 18px',
@@ -390,7 +396,7 @@ const styles: any = {
     fontWeight: '700',
     cursor: 'pointer',
     transition: 'all 0.3s',
-    fontSize: 'clamp(12px, 1.2vw, 14px)',
+    fontSize: '14px',
     boxShadow: '0 4px 20px rgba(255, 215, 0, 0.2)',
   },
   main: {
@@ -429,7 +435,7 @@ const styles: any = {
     background: 'rgba(255, 215, 0, 0.08)',
     border: '1px solid rgba(255, 215, 0, 0.15)',
     borderRadius: '50px',
-    fontSize: 'clamp(10px, 1vw, 12px)',
+    fontSize: '12px',
     fontWeight: '600',
     color: '#FFD700',
     width: 'fit-content',
@@ -443,9 +449,15 @@ const styles: any = {
     animation: 'pulse 2s infinite',
   },
   heroTitle: {
-    fontSize: 'clamp(28px, 5vw, 52px)',
+    fontSize: '52px',
     fontWeight: '800',
     lineHeight: 1.1,
+    margin: 0,
+  },
+  heroTitleMobile: {
+    fontSize: '28px',
+    fontWeight: '800',
+    lineHeight: 1.2,
     margin: 0,
   },
   heroHighlight: {
@@ -455,10 +467,16 @@ const styles: any = {
     WebkitTextFillColor: 'transparent',
   },
   heroDescription: {
-    fontSize: 'clamp(14px, 1.4vw, 17px)',
+    fontSize: '17px',
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 1.8,
     maxWidth: '500px',
+  },
+  heroDescriptionMobile: {
+    fontSize: '14px',
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 1.8,
+    maxWidth: '100%',
   },
   heroButtons: {
     display: 'flex',
@@ -474,12 +492,12 @@ const styles: any = {
     justifyContent: 'center',
   },
   primaryButton: {
-    padding: 'clamp(10px, 1.2vw, 14px) clamp(20px, 2.5vw, 30px)',
+    padding: '14px 30px',
     background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
     color: '#0a0a14',
     border: 'none',
     borderRadius: '50px',
-    fontSize: 'clamp(13px, 1.3vw, 16px)',
+    fontSize: '16px',
     fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
@@ -488,18 +506,47 @@ const styles: any = {
     boxShadow: '0 4px 25px rgba(255, 215, 0, 0.25)',
     transition: 'all 0.3s',
   },
+  primaryButtonMobile: {
+    padding: '10px 20px',
+    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
+    color: '#0a0a14',
+    border: 'none',
+    borderRadius: '50px',
+    fontSize: '13px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    boxShadow: '0 4px 25px rgba(255, 215, 0, 0.25)',
+    transition: 'all 0.3s',
+  },
   secondaryButton: {
-    padding: 'clamp(10px, 1.2vw, 14px) clamp(20px, 2.5vw, 30px)',
+    padding: '14px 30px',
     background: 'transparent',
     color: 'white',
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '50px',
-    fontSize: 'clamp(13px, 1.3vw, 16px)',
+    fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
+    transition: 'all 0.3s',
+  },
+  secondaryButtonMobile: {
+    padding: '10px 20px',
+    background: 'transparent',
+    color: 'white',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '50px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
     transition: 'all 0.3s',
   },
   stats: {
@@ -525,12 +572,12 @@ const styles: any = {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 'clamp(20px, 2.5vw, 28px)',
+    fontSize: '28px',
     fontWeight: '800',
     color: '#FFD700',
   },
   statLabel: {
-    fontSize: 'clamp(10px, 1vw, 13px)',
+    fontSize: '13px',
     color: 'rgba(255, 255, 255, 0.4)',
   },
   heroImage: {
@@ -559,11 +606,11 @@ const styles: any = {
     justifyContent: 'center',
   },
   mainIcon: {
-    fontSize: 'clamp(50px, 6vw, 72px)',
+    fontSize: '72px',
     marginBottom: '15px',
   },
   imageText: {
-    fontSize: 'clamp(13px, 1.2vw, 16px)',
+    fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.4)',
   },
   features: {
@@ -579,13 +626,18 @@ const styles: any = {
     background: 'rgba(255, 215, 0, 0.08)',
     border: '1px solid rgba(255, 215, 0, 0.15)',
     borderRadius: '50px',
-    fontSize: 'clamp(10px, 1vw, 12px)',
+    fontSize: '12px',
     fontWeight: '600',
     color: '#FFD700',
     marginBottom: '15px',
   },
   featuresTitle: {
-    fontSize: 'clamp(24px, 3.5vw, 36px)',
+    fontSize: '36px',
+    fontWeight: '800',
+    margin: 0,
+  },
+  featuresTitleMobile: {
+    fontSize: '24px',
     fontWeight: '800',
     margin: 0,
   },
@@ -601,24 +653,24 @@ const styles: any = {
   },
   featureCard: {
     background: 'rgba(255, 255, 255, 0.02)',
-    padding: 'clamp(16px, 2vw, 30px) clamp(12px, 1.5vw, 20px)',
+    padding: '25px 15px',
     borderRadius: '20px',
     border: '1px solid rgba(255, 255, 255, 0.03)',
     textAlign: 'center',
     transition: 'all 0.3s',
   },
   featureIconWrapper: {
-    fontSize: 'clamp(28px, 3vw, 32px)',
+    fontSize: '32px',
     display: 'block',
     marginBottom: '15px',
   },
   featureTitle: {
-    fontSize: 'clamp(14px, 1.5vw, 18px)',
+    fontSize: '18px',
     fontWeight: '600',
     marginBottom: '10px',
   },
   featureText: {
-    fontSize: 'clamp(11px, 1vw, 14px)',
+    fontSize: '14px',
     color: 'rgba(255, 255, 255, 0.5)',
     lineHeight: 1.6,
   },
@@ -635,22 +687,35 @@ const styles: any = {
     background: 'rgba(255, 215, 0, 0.08)',
     border: '1px solid rgba(255, 215, 0, 0.15)',
     borderRadius: '50px',
-    fontSize: 'clamp(10px, 1vw, 12px)',
+    fontSize: '12px',
     fontWeight: '600',
     color: '#FFD700',
     marginBottom: '15px',
   },
   sectionTitle: {
-    fontSize: 'clamp(24px, 3.5vw, 36px)',
+    fontSize: '36px',
+    fontWeight: '800',
+    margin: 0,
+  },
+  sectionTitleMobile: {
+    fontSize: '24px',
     fontWeight: '800',
     margin: 0,
   },
   sectionSubtitle: {
-    fontSize: 'clamp(13px, 1.2vw, 16px)',
+    fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.4)',
     maxWidth: '600px',
     margin: '10px auto 0',
     lineHeight: 1.8,
+  },
+  sectionSubtitleMobile: {
+    fontSize: '13px',
+    color: 'rgba(255, 255, 255, 0.4)',
+    maxWidth: '100%',
+    margin: '10px auto 0',
+    lineHeight: 1.8,
+    padding: '0 10px',
   },
   subjectsGrid: {
     display: 'grid',
@@ -664,24 +729,24 @@ const styles: any = {
   },
   subjectCard: {
     background: 'rgba(255, 255, 255, 0.02)',
-    padding: 'clamp(16px, 2vw, 30px) clamp(12px, 1.5vw, 20px)',
+    padding: '25px 15px',
     borderRadius: '20px',
     border: '1px solid rgba(255, 255, 255, 0.03)',
     textAlign: 'center',
     transition: 'all 0.3s',
   },
   subjectIcon: {
-    fontSize: 'clamp(32px, 4vw, 48px)',
+    fontSize: '48px',
     display: 'block',
     marginBottom: '12px',
   },
   subjectTitle: {
-    fontSize: 'clamp(14px, 1.5vw, 20px)',
+    fontSize: '20px',
     fontWeight: '700',
     marginBottom: '6px',
   },
   subjectDesc: {
-    fontSize: 'clamp(10px, 1vw, 13px)',
+    fontSize: '13px',
     color: 'rgba(255, 255, 255, 0.3)',
     marginBottom: '0',
   },
@@ -690,7 +755,7 @@ const styles: any = {
   },
   supportCard: {
     background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 107, 0, 0.03))',
-    padding: 'clamp(25px, 3vw, 40px) clamp(15px, 2vw, 30px)',
+    padding: '40px 20px',
     borderRadius: '24px',
     border: '1px solid rgba(255, 215, 0, 0.08)',
     textAlign: 'center',
@@ -700,25 +765,36 @@ const styles: any = {
     margin: '0 auto',
   },
   supportTitle: {
-    fontSize: 'clamp(20px, 2.5vw, 28px)',
+    fontSize: '28px',
     fontWeight: '700',
     marginBottom: '15px',
   },
+  supportTitleMobile: {
+    fontSize: '20px',
+    fontWeight: '700',
+    marginBottom: '12px',
+  },
   supportText: {
-    fontSize: 'clamp(13px, 1.2vw, 16px)',
+    fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: '25px',
     lineHeight: 1.8,
   },
+  supportTextMobile: {
+    fontSize: '13px',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: '20px',
+    lineHeight: 1.8,
+  },
   supportButton: {
     display: 'inline-block',
-    padding: 'clamp(10px, 1vw, 12px) clamp(20px, 2.5vw, 32px)',
+    padding: '12px 32px',
     background: 'rgba(255, 215, 0, 0.1)',
     color: '#FFD700',
     border: '1px solid rgba(255, 215, 0, 0.2)',
     borderRadius: '50px',
     textDecoration: 'none',
-    fontSize: 'clamp(13px, 1.2vw, 15px)',
+    fontSize: '15px',
     fontWeight: '600',
     transition: 'all 0.3s',
   },
@@ -727,7 +803,7 @@ const styles: any = {
   },
   ctaCard: {
     background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 107, 0, 0.05))',
-    padding: 'clamp(30px, 4vw, 50px) clamp(15px, 2vw, 30px)',
+    padding: '50px 20px',
     borderRadius: '30px',
     border: '1px solid rgba(255, 215, 0, 0.05)',
     textAlign: 'center',
@@ -737,22 +813,44 @@ const styles: any = {
     margin: '0 auto',
   },
   ctaTitle: {
-    fontSize: 'clamp(22px, 3vw, 32px)',
+    fontSize: '32px',
     fontWeight: '800',
     marginBottom: '15px',
   },
+  ctaTitleMobile: {
+    fontSize: '22px',
+    fontWeight: '800',
+    marginBottom: '12px',
+  },
   ctaText: {
-    fontSize: 'clamp(13px, 1.2vw, 16px)',
+    fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: '25px',
   },
+  ctaTextMobile: {
+    fontSize: '13px',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: '20px',
+  },
   ctaButton: {
-    padding: 'clamp(10px, 1.2vw, 14px) clamp(20px, 2.5vw, 32px)',
+    padding: '14px 32px',
     background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
     color: '#0a0a14',
     border: 'none',
     borderRadius: '50px',
-    fontSize: 'clamp(13px, 1.3vw, 16px)',
+    fontSize: '16px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    boxShadow: '0 4px 25px rgba(255, 215, 0, 0.2)',
+    transition: 'all 0.3s',
+  },
+  ctaButtonMobile: {
+    padding: '10px 20px',
+    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
+    color: '#0a0a14',
+    border: 'none',
+    borderRadius: '50px',
+    fontSize: '13px',
     fontWeight: '700',
     cursor: 'pointer',
     boxShadow: '0 4px 25px rgba(255, 215, 0, 0.2)',
@@ -798,12 +896,12 @@ const styles: any = {
     fontWeight: 'bold',
   },
   footerTitle: {
-    fontSize: 'clamp(16px, 1.5vw, 18px)',
+    fontSize: '18px',
     fontWeight: '700',
     margin: 0,
   },
   footerText: {
-    fontSize: 'clamp(12px, 1vw, 14px)',
+    fontSize: '14px',
     color: 'rgba(255, 255, 255, 0.4)',
     lineHeight: 1.6,
     maxWidth: '400px',
@@ -814,14 +912,14 @@ const styles: any = {
     gap: '8px',
   },
   footerLinksTitle: {
-    fontSize: 'clamp(14px, 1.3vw, 16px)',
+    fontSize: '16px',
     fontWeight: '600',
     marginBottom: '5px',
   },
   footerLink: {
     color: 'rgba(255, 255, 255, 0.4)',
     textDecoration: 'none',
-    fontSize: 'clamp(12px, 1vw, 14px)',
+    fontSize: '14px',
     transition: 'all 0.3s',
   },
   footerBottom: {
@@ -830,7 +928,7 @@ const styles: any = {
     textAlign: 'center',
   },
   copyright: {
-    fontSize: 'clamp(10px, 0.8vw, 12px)',
+    fontSize: '12px',
     color: 'rgba(255, 255, 255, 0.2)',
   },
 };
