@@ -521,10 +521,10 @@ export default function PlatformPage() {
     const yearMap: { [key: string]: string } = {
       '1-prep': 'أولى إعدادي',
       '2-prep': 'ثانية إعدادي',
-      '3-prep': 'تالتة إعدادي', // ✅ ✅ تالتة ثانوي
+      '3-prep': 'تالتة إعدادي',
       '1-secondary': 'أولى ثانوي',
       '2-secondary': 'ثانية ثانوي',
-      '3-secondary': 'تالتة ثانوي', // ✅ ✅ تالتة ثانوي
+      '3-secondary': 'تالتة ثانوي',
     };
     return yearMap[yearCode] || yearCode || 'غير محدد';
   };
@@ -619,25 +619,25 @@ export default function PlatformPage() {
           transition: 'opacity 0.1s ease-out',
         }}
       >
-        <div style={styles.headerContent}>
+        <div style={isMobile ? styles.headerContentMobile : styles.headerContent}>
           <div style={styles.logoSection}>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              style={styles.menuToggle}
+              style={isMobile ? {...styles.menuToggle, fontSize: '20px'} : styles.menuToggle}
             >
               ☰
             </button>
             <div>
-              <h1 style={styles.logo}>✨ Fancy Academic</h1>
-              <p style={styles.logoSub}>منصة التعليم الذكية</p>
+              <h1 style={isMobile ? {...styles.logo, fontSize: '18px'} : styles.logo}>✨ Fancy Academic</h1>
+              <p style={isMobile ? {...styles.logoSub, fontSize: '10px'} : styles.logoSub}>منصة التعليم الذكية</p>
             </div>
           </div>
 
-          <div style={styles.userSection}>
+          <div style={isMobile ? styles.userSectionMobile : styles.userSection}>
             {/* ✅ ✅ زر الإشعارات مع العداد - يختفي عند الضغط */}
             <button 
               onClick={handleOpenNotifications}
-              style={styles.notifButton}
+              style={isMobile ? {...styles.notifButton, fontSize: '20px'} : styles.notifButton}
             >
               🔔
               {unreadCount > 0 && (
@@ -645,10 +645,10 @@ export default function PlatformPage() {
               )}
             </button>
 
-            <div style={styles.statsBadges}>
-              <span style={styles.xpBadge}>⭐ {stats.xp}</span>
-              <span style={styles.levelBadge}>🎯 {stats.level}</span>
-              <span style={styles.streakBadge}>
+            <div style={isMobile ? styles.statsBadgesMobile : styles.statsBadges}>
+              <span style={isMobile ? {...styles.xpBadge, fontSize: '10px', padding: '2px 8px'} : styles.xpBadge}>⭐ {stats.xp}</span>
+              <span style={isMobile ? {...styles.levelBadge, fontSize: '10px', padding: '2px 8px'} : styles.levelBadge}>🎯 {stats.level}</span>
+              <span style={isMobile ? {...styles.streakBadge, fontSize: '10px', padding: '2px 8px'} : styles.streakBadge}>
                 🔥 {stats.streak}
                 {stats.freezes > 0 && (
                   <span style={styles.freezeBadge}> ❄️{stats.freezes}</span>
@@ -656,10 +656,12 @@ export default function PlatformPage() {
               </span>
             </div>
 
-            <div style={styles.userAvatar}>{user.name?.charAt(0) || 'ط'}</div>
-            <div style={styles.userInfo}>
-              <div style={styles.userName}>{user.name || 'طالب'}</div>
-              <div style={styles.userBadge}>{userYear}</div>
+            <div style={isMobile ? {...styles.userAvatar, width: '35px', height: '35px', fontSize: '14px'} : styles.userAvatar}>
+              {user.name?.charAt(0) || 'ط'}
+            </div>
+            <div style={isMobile ? styles.userInfoMobile : styles.userInfo}>
+              <div style={isMobile ? {...styles.userName, fontSize: '13px'} : styles.userName}>{user.name || 'طالب'}</div>
+              <div style={isMobile ? {...styles.userBadge, fontSize: '10px'} : styles.userBadge}>{userYear}</div>
             </div>
           </div>
         </div>
@@ -669,9 +671,9 @@ export default function PlatformPage() {
       {showNotificationPanel && (
         <>
           <div style={styles.overlay} onClick={() => setShowNotificationPanel(false)} />
-          <div style={styles.notificationPanel}>
+          <div style={isMobile ? {...styles.notificationPanel, width: 'calc(100% - 20px)', left: '10px', top: '70px'} : styles.notificationPanel}>
             <div style={styles.panelHeader}>
-              <h3 style={styles.panelTitle}>🔔 الإشعارات</h3>
+              <h3 style={isMobile ? {...styles.panelTitle, fontSize: '16px'} : styles.panelTitle}>🔔 الإشعارات</h3>
               <button onClick={() => setShowNotificationPanel(false)} style={styles.closeBtn}>✕</button>
             </div>
             
@@ -720,14 +722,14 @@ export default function PlatformPage() {
                       onClick={() => !isRead && markAsRead(item.id)}
                     >
                       <div style={styles.notifHeader}>
-                        <span style={styles.notifTitle}>{item.title}</span>
-                        <span style={styles.notifTime}>
+                        <span style={isMobile ? {...styles.notifTitle, fontSize: '13px'} : styles.notifTitle}>{item.title}</span>
+                        <span style={isMobile ? {...styles.notifTime, fontSize: '10px'} : styles.notifTime}>
                           {item.createdAt?.toDate?.() 
                             ? new Date(item.createdAt.toDate()).toLocaleString('ar-EG')
                             : new Date(item.createdAt).toLocaleString('ar-EG')}
                         </span>
                       </div>
-                      <p style={styles.notifBody}>{item.body}</p>
+                      <p style={isMobile ? {...styles.notifBody, fontSize: '12px'} : styles.notifBody}>{item.body}</p>
                       {!isRead && <div style={styles.unreadDot}>جديد</div>}
                     </div>
                   );
@@ -933,8 +935,8 @@ export default function PlatformPage() {
                   ...styles.categoryButton,
                   background: activeCategory === 'all' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
                   color: activeCategory === 'all' ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: isMobile ? '14px' : '15px',
-                  padding: isMobile ? '8px 16px' : '10px 20px',
+                  fontSize: isMobile ? '12px' : '15px',
+                  padding: isMobile ? '6px 12px' : '10px 20px',
                 }}
               >
                 📚 الكل
@@ -945,8 +947,8 @@ export default function PlatformPage() {
                   ...styles.categoryButton,
                   background: activeCategory === 'كيمياء' ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
                   color: activeCategory === 'كيمياء' ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: isMobile ? '14px' : '15px',
-                  padding: isMobile ? '8px 16px' : '10px 20px',
+                  fontSize: isMobile ? '12px' : '15px',
+                  padding: isMobile ? '6px 12px' : '10px 20px',
                 }}
               >
                 ⚗️ كيمياء
@@ -957,21 +959,20 @@ export default function PlatformPage() {
                   ...styles.categoryButton,
                   background: activeCategory === 'فيزياء' ? '#ef4444' : 'rgba(255,255,255,0.05)',
                   color: activeCategory === 'فيزياء' ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: isMobile ? '14px' : '15px',
-                  padding: isMobile ? '8px 16px' : '10px 20px',
+                  fontSize: isMobile ? '12px' : '15px',
+                  padding: isMobile ? '6px 12px' : '10px 20px',
                 }}
               >
                 ⚛️ فيزياء
               </button>
-              {/* ✅ ✅ إضافة أزرار إضافية لتالتة ثانوي لو احتجت */}
               <button
                 onClick={() => setActiveCategory('أحياء')}
                 style={{
                   ...styles.categoryButton,
                   background: activeCategory === 'أحياء' ? '#10b981' : 'rgba(255,255,255,0.05)',
                   color: activeCategory === 'أحياء' ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: isMobile ? '14px' : '15px',
-                  padding: isMobile ? '8px 16px' : '10px 20px',
+                  fontSize: isMobile ? '12px' : '15px',
+                  padding: isMobile ? '6px 12px' : '10px 20px',
                 }}
               >
                 🧬 أحياء
@@ -982,8 +983,8 @@ export default function PlatformPage() {
                   ...styles.categoryButton,
                   background: activeCategory === 'جيولوجيا' ? '#f59e0b' : 'rgba(255,255,255,0.05)',
                   color: activeCategory === 'جيولوجيا' ? 'white' : 'rgba(255,255,255,0.6)',
-                  fontSize: isMobile ? '14px' : '15px',
-                  padding: isMobile ? '8px 16px' : '10px 20px',
+                  fontSize: isMobile ? '12px' : '15px',
+                  padding: isMobile ? '6px 12px' : '10px 20px',
                 }}
               >
                 🌍 جيولوجيا
@@ -994,17 +995,17 @@ export default function PlatformPage() {
           {subjectsLoading ? (
             <div style={styles.loadingCourses}>
               <div style={styles.spinner}></div>
-              <p>جاري تحميل المواد...</p>
+              <p style={isMobile ? {...styles.loadingText, fontSize: '14px'} : styles.loadingText}>جاري تحميل المواد...</p>
             </div>
           ) : displayedSubjects.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>📭</div>
-              <h3 style={styles.emptyTitle}>
+              <h3 style={isMobile ? {...styles.emptyTitle, fontSize: '18px'} : styles.emptyTitle}>
                 {(userYear === 'ثانية ثانوي' || userYear === 'تالتة ثانوي') && activeCategory !== 'all'
                   ? `لا توجد مواد في ${activeCategory}`
                   : 'لا توجد مواد متاحة'}
               </h3>
-              <p style={styles.emptyText}>
+              <p style={isMobile ? {...styles.emptyText, fontSize: '13px'} : styles.emptyText}>
                 {(userYear === 'ثانية ثانوي' || userYear === 'تالتة ثانوي') && activeCategory !== 'all'
                   ? 'سيتم إضافة مواد قريباً'
                   : 'يمكنك التواصل مع الدعم لمعرفة المزيد'}
@@ -1017,8 +1018,8 @@ export default function PlatformPage() {
                   key={subject.id}
                   style={isMobile ? styles.courseCardMobile : styles.courseCard}
                 >
-                  <div style={styles.courseHeader}>
-                    <div style={styles.courseIcon}>
+                  <div style={isMobile ? styles.courseHeaderMobile : styles.courseHeader}>
+                    <div style={isMobile ? {...styles.courseIcon, fontSize: '24px', width: '40px', height: '40px'} : styles.courseIcon}>
                       {subject.isEnrolled ? '📖' : '📚'}
                     </div>
                     <div>
@@ -1037,6 +1038,7 @@ export default function PlatformPage() {
                             ...styles.courseCategory,
                             background: 'rgba(255,255,255,0.05)',
                             color: 'rgba(255,255,255,0.6)',
+                            fontSize: isMobile ? '10px' : '12px',
                           }}
                         >
                           {subject.grade}
@@ -1071,30 +1073,32 @@ export default function PlatformPage() {
                     </div>
                   )}
 
-                  <div style={styles.courseMeta}>
-                    <span>📅 {new Date(subject.createdAt).toLocaleDateString('ar-EG')}</span>
-                    <span>👨‍🏫 {subject.teacherName || 'لم يحدد'}</span>
+                  <div style={isMobile ? styles.courseMetaMobile : styles.courseMeta}>
+                    <span style={isMobile ? {fontSize: '11px'} : {}}>📅 {new Date(subject.createdAt).toLocaleDateString('ar-EG')}</span>
+                    <span style={isMobile ? {fontSize: '11px'} : {}}>👨‍🏫 {subject.teacherName || 'لم يحدد'}</span>
                   </div>
 
-                  <div style={styles.courseFooter}>
+                  <div style={isMobile ? styles.courseFooterMobile : styles.courseFooter}>
                     <span
                       style={{
                         ...styles.statusBadge,
                         background: subject.isEnrolled ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
                         color: subject.isEnrolled ? '#34d399' : '#f87171',
+                        fontSize: isMobile ? '11px' : '13px',
+                        padding: isMobile ? '4px 10px' : '6px 12px',
                       }}
                     >
                       {subject.isEnrolled ? '✅ مسجل' : '🔒 غير مسجل'}
                     </span>
 
                     {subject.isEnrolled ? (
-                      <Link href={`/subject/${subject.id}`} style={styles.courseButton}>
+                      <Link href={`/subject/${subject.id}`} style={isMobile ? {...styles.courseButton, fontSize: '12px', padding: '6px 12px'} : styles.courseButton}>
                         دخول المادة ←
                       </Link>
                     ) : (
                       <button
                         onClick={() => handleEnroll(subject.id)}
-                        style={styles.enrollButton}
+                        style={isMobile ? {...styles.enrollButton, fontSize: '12px', padding: '6px 12px'} : styles.enrollButton}
                       >
                         ➕ تسجيل
                       </button>
@@ -1110,16 +1114,16 @@ export default function PlatformPage() {
       {/* ✅ الفوتر */}
       <footer style={styles.oldFooter}>
         <div style={isMobile ? styles.footerContentMobile : styles.footerContent}>
-          <p style={styles.footerText}>
+          <p style={isMobile ? {...styles.footerText, fontSize: '12px'} : styles.footerText}>
             © 2026 Fancy Academic - منصة التعليم الذكية
           </p>
           <div style={isMobile ? styles.footerLinksMobile : styles.footerLinks}>
-            <span style={styles.footerLink}>سياسة الخصوصية</span>
-            <span style={styles.footerLink}>الشروط والأحكام</span>
-            <span style={styles.footerLink}>اتصل بنا</span>
+            <span style={isMobile ? {...styles.footerLink, fontSize: '11px'} : styles.footerLink}>سياسة الخصوصية</span>
+            <span style={isMobile ? {...styles.footerLink, fontSize: '11px'} : styles.footerLink}>الشروط والأحكام</span>
+            <span style={isMobile ? {...styles.footerLink, fontSize: '11px'} : styles.footerLink}>اتصل بنا</span>
           </div>
           <div style={styles.footerSupport}>
-            <p style={styles.supportInfo}>
+            <p style={isMobile ? {...styles.supportInfo, fontSize: '10px'} : styles.supportInfo}>
               تطوير:{' '}
               <a
                 href="mailto:tomasmehany@gmail.com"
@@ -1128,7 +1132,7 @@ export default function PlatformPage() {
                 tomasmehany@gmail.com
               </a>
             </p>
-            <p style={styles.supportInfo}>
+            <p style={isMobile ? {...styles.supportInfo, fontSize: '10px'} : styles.supportInfo}>
               للدعم:
               <a
                 href={whatsappLink}
@@ -1148,6 +1152,9 @@ export default function PlatformPage() {
           style={{
             ...styles.floatingButton,
             background: 'linear-gradient(135deg, #10b981, #059669)',
+            width: isMobile ? '50px' : '60px',
+            height: isMobile ? '50px' : '60px',
+            fontSize: isMobile ? '22px' : '26px',
           }}
           title="المساعد الذكي"
         >
@@ -1176,7 +1183,7 @@ export default function PlatformPage() {
   );
 }
 
-// ✅ جميع الأنماط (نفس اللي موجود)
+// ✅ جميع الأنماط (مع إضافة أنماط الموبايل)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -1259,10 +1266,19 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerContentMobile: {
+    maxWidth: '1600px',
+    margin: '0 auto',
+    padding: '10px 15px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '10px',
+  },
   logoSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '15px',
+    gap: '10px',
   },
   menuToggle: {
     background: 'none',
@@ -1289,6 +1305,13 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '15px',
+  },
+  userSectionMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
   },
   notifButton: {
     position: 'relative' as const,
@@ -1469,6 +1492,12 @@ const styles = {
     gap: '8px',
     alignItems: 'center',
   },
+  statsBadgesMobile: {
+    display: 'flex',
+    gap: '4px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   xpBadge: {
     padding: '4px 10px',
     background: 'rgba(16, 185, 129, 0.15)',
@@ -1518,6 +1547,10 @@ const styles = {
   },
   userInfo: {
     textAlign: 'right',
+  },
+  userInfoMobile: {
+    textAlign: 'right',
+    display: 'none',
   },
   userName: {
     fontSize: '15px',
@@ -1701,13 +1734,13 @@ const styles = {
   },
   welcomeBannerMobile: {
     background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15))',
-    borderRadius: '16px',
-    padding: '20px',
+    borderRadius: '12px',
+    padding: '15px',
     color: 'white',
-    marginBottom: '20px',
+    marginBottom: '15px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px',
+    gap: '10px',
     alignItems: 'center',
     textAlign: 'center',
     border: '1px solid rgba(255,255,255,0.05)',
@@ -1718,7 +1751,7 @@ const styles = {
     margin: '0 0 10px 0',
   },
   welcomeTitleMobile: {
-    fontSize: '20px',
+    fontSize: '18px',
     fontWeight: 'bold',
     margin: '0 0 5px 0',
   },
@@ -1728,7 +1761,7 @@ const styles = {
     margin: 0,
   },
   welcomeTextMobile: {
-    fontSize: '14px',
+    fontSize: '13px',
     opacity: 0.7,
     margin: 0,
   },
@@ -1745,8 +1778,8 @@ const styles = {
   },
   categoriesBarMobile: {
     display: 'flex',
-    gap: '8px',
-    marginBottom: '20px',
+    gap: '6px',
+    marginBottom: '15px',
     overflowX: 'auto',
     padding: '5px 0',
     whiteSpace: 'nowrap',
@@ -1770,7 +1803,7 @@ const styles = {
   coursesGridMobile: {
     display: 'grid',
     gridTemplateColumns: '1fr',
-    gap: '15px',
+    gap: '12px',
     animation: 'fadeIn 0.5s ease',
   },
   courseCard: {
@@ -1783,7 +1816,7 @@ const styles = {
   courseCardMobile: {
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '12px',
-    padding: '15px',
+    padding: '12px',
     border: '1px solid rgba(255,255,255,0.05)',
     transition: 'all 0.3s',
   },
@@ -1791,6 +1824,11 @@ const styles = {
     display: 'flex',
     gap: '15px',
     marginBottom: '15px',
+  },
+  courseHeaderMobile: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '10px',
   },
   courseIcon: {
     fontSize: '32px',
@@ -1809,7 +1847,7 @@ const styles = {
     margin: '0 0 5px 0',
   },
   courseTitleMobile: {
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: '600',
     color: 'white',
     margin: '0 0 3px 0',
@@ -1828,9 +1866,9 @@ const styles = {
     lineHeight: 1.6,
   },
   courseDescriptionMobile: {
-    fontSize: '13px',
+    fontSize: '12px',
     color: 'rgba(255,255,255,0.5)',
-    marginBottom: '12px',
+    marginBottom: '10px',
     lineHeight: 1.5,
   },
   progressContainer: {
@@ -1865,10 +1903,25 @@ const styles = {
     color: 'rgba(255,255,255,0.3)',
     marginBottom: '15px',
   },
+  courseMetaMobile: {
+    display: 'flex',
+    gap: '10px',
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.3)',
+    marginBottom: '10px',
+    flexWrap: 'wrap',
+  },
   courseFooter: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  courseFooterMobile: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
   },
   statusBadge: {
     padding: '6px 12px',
@@ -1948,7 +2001,7 @@ const styles = {
     textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px',
+    gap: '10px',
   },
   footerText: {
     color: 'rgba(255,255,255,0.3)',
@@ -1965,8 +2018,8 @@ const styles = {
   footerLinksMobile: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
-    marginBottom: '15px',
+    gap: '5px',
+    marginBottom: '10px',
   },
   footerLink: {
     color: 'rgba(255,255,255,0.2)',
