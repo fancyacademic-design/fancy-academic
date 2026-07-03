@@ -1,349 +1,1174 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { 
+  collection, 
+  getDocs, 
+  query, 
+  where, 
+  doc, 
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  orderBy
+} from 'firebase/firestore';
 
-export default function Home() {
-  const router = useRouter();
-  const [isScrolled, setIsScrolled] = useState(false);
+export default function PlatformPage() {
+  const [user, setUser] = useState<any>(null);
+  const [userId, setUserId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [subjectsLoading, setSubjectsLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  
+  // ✅ إحصائيات الطالب
+  const [stats, setStats] = useState({
+    total: 0,
+    opened: 0,
+    completed: 0,
+    progress: 0,
+    xp: 0,
+    level: 1,
+    streak: 0,
+    gems: 0,
+    freezes: 0,
+  });
 
+  // ✅ طلبات الربط
+  const [linkRequests, setLinkRequests] = useState<any[]>([]);
+  
+  // ✅ الإشعارات العادية
+  const [notifications, setNotifications] = useState<any[]>([]);
+  
+  // ✅ كل الإشعارات (للعد)
+  const [allNotifications, setAllNotifications] = useState<any[]>([]);
+  
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+
+  // ✅ ✅ عداد الإشعارات الغير مقروءة (يتم تحديثه عند فتح اللوحة)
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const [headerOpacity, setHeaderOpacity] = useState(1);
+  const whatsappLink = 'https://wa.me/message/UKASWZCU5BNLN1?src=qr';
+
+  // ✅ التحقق من حجم الشاشة
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth <= 768) {
+        setIsSidebarOpen(false);
+      }
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', checkMobile);
-    };
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // ✅ تأثير التمرير للهواتف
+  useEffect(() => {
+    if (!isMobile) return;
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      let newOpacity = 1 - currentScrollY / 120;
+      if (newOpacity < 0) newOpacity = 0;
+      if (newOpacity > 1) newOpacity = 1;
+      setHeaderOpacity(newOpacity);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMobile]);
+
+  // ✅ تحميل بيانات المستخدم والمواد وطلبات الربط والإشعارات
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userData = localStorage.getItem('currentUser');
+        if (!userData) {
+          setLoading(false);
+          return;
+        }
+
+        const parsedUser = JSON.parse(userData);
+        let userId = parsedUser.id || parsedUser.userId || parsedUser.uid || parsedUser._id || parsedUser.phone || '';
+
+        if (!userId) {
+          console.error('لم يتم العثور على معرف مستخدم');
+          setLoading(false);
+          return;
+        }
+
+        setUserId(userId);
+
+        if (parsedUser.grade && !parsedUser.year) {
+          parsedUser.year = parsedUser.grade;
+        }
+        if (!parsedUser.year) {
+          parsedUser.year = 'غير محدد';
+        }
+
+        setUser(parsedUser);
+
+        await fetchUserStats(userId);
+        
+        // ✅ جلب طلبات الربط
+        await fetchLinkRequests(userId);
+        
+        // ✅ جلب الإشعارات العادية
+        await fetchNotifications(userId);
+
+        if (parsedUser.year && userId) {
+          await fetchSubjects(parsedUser.year, userId);
+        }
+
+        // ✅ تحديث الحضور اليومي (streak)
+        await updateDailyStreak(userId);
+
+      } catch (error) {
+        console.error('خطأ في تحميل بيانات المستخدم:', error);
+        setFetchError('فشل تحميل بيانات المستخدم');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUserData();
+  }, []);
+
+  // ✅ جلب إحصائيات المستخدم
+  const fetchUserStats = async (studentId: string) => {
+    try {
+      const userRef = doc(db, 'users', studentId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setStats(prev => ({
+          ...prev,
+          xp: data.xp || 0,
+          level: data.level || 1,
+          streak: data.streak || 0,
+          gems: data.gems || 0,
+          freezes: data.freezes || 0,
+        }));
+      }
+    } catch (error) {
+      console.error('❌ خطأ في جلب إحصائيات المستخدم:', error);
+    }
+  };
+
+  // ✅ تحديث الحضور اليومي ونظام التجميد
+  const updateDailyStreak = async (studentId: string) => {
+    try {
+      const userRef = doc(db, 'users', studentId);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) return;
+      
+      const data = userDoc.data();
+      const today = new Date().toDateString();
+      const lastVisit = data.lastVisitDate || '';
+      const currentStreak = data.streak || 0;
+      const currentFreezes = data.freezes || 0;
+      
+      // ✅ لو دخل اليوم بالفعل، متعملش حاجة
+      if (lastVisit === today) {
+        return;
+      }
+      
+      // ✅ حساب الفرق بين الأيام
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toDateString();
+      
+      let newStreak = currentStreak;
+      let newFreezes = currentFreezes;
+      
+      if (lastVisit === yesterdayStr) {
+        // ✅ دخل يوم متتالي
+        newStreak = currentStreak + 1;
+        
+        // ✅ يكتسب تجميد كل 10 أيام (حد أقصى 3)
+        if (newStreak % 10 === 0 && newFreezes < 3) {
+          newFreezes = Math.min(newFreezes + 1, 3);
+        }
+      } else if (lastVisit !== today && lastVisit !== yesterdayStr) {
+        // ✅ فوت يوم أو أكثر
+        if (currentFreezes > 0) {
+          // ✅ يستخدم تجميد
+          newFreezes = currentFreezes - 1;
+          // ✅ streak يفضل كما هو
+        } else {
+          // ✅ مفيش تجميد، يبدأ من الصفر
+          newStreak = 0;
+        }
+      }
+      
+      // ✅ تحديث في Firebase
+      await updateDoc(userRef, {
+        streak: newStreak,
+        freezes: newFreezes,
+        lastVisitDate: today,
+        lastUpdated: serverTimestamp(),
+      });
+      
+      // ✅ تحديث الـ state
+      setStats(prev => ({
+        ...prev,
+        streak: newStreak,
+        freezes: newFreezes,
+      }));
+      
+    } catch (error) {
+      console.error('❌ خطأ في تحديث الحضور اليومي:', error);
+    }
+  };
+
+  // ✅ جلب طلبات الربط
+  const fetchLinkRequests = async (studentId: string) => {
+    try {
+      const q = query(
+        collection(db, 'notifications'),
+        where('studentId', '==', studentId),
+        where('type', '==', 'parent_request'),
+        where('status', '==', 'pending'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      const requests = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setLinkRequests(requests);
+    } catch (error) {
+      console.error('❌ خطأ في جلب طلبات الربط:', error);
+    }
+  };
+
+  // ✅ جلب الإشعارات العادية
+  const fetchNotifications = async (studentId: string) => {
+    try {
+      // ✅ 1. الإشعارات العامة
+      const allQuery = query(
+        collection(db, "notifications"), 
+        where("target.type", "==", "all"),
+        orderBy("createdAt", "desc")
+      );
+      
+      // ✅ 2. الإشعارات حسب المرحلة
+      const gradeQuery = query(
+        collection(db, "notifications"), 
+        where("target.type", "==", "grade"), 
+        where("target.grade", "==", user?.grade || '1-prep'),
+        orderBy("createdAt", "desc")
+      );
+      
+      // ✅ 3. الإشعارات الخاصة بالطالب
+      const studentQuery = query(
+        collection(db, "notifications"), 
+        where("target.type", "==", "student"), 
+        where("target.studentId", "==", studentId),
+        orderBy("createdAt", "desc")
+      );
+      
+      // ✅ 4. الإشعارات المباشرة (من الأدمن)
+      const directQuery = query(
+        collection(db, "notifications"),
+        where("studentId", "==", studentId),
+        orderBy("createdAt", "desc")
+      );
+      
+      const [allSnap, gradeSnap, studentSnap, directSnap] = await Promise.all([
+        getDocs(allQuery),
+        getDocs(gradeQuery),
+        getDocs(studentQuery),
+        getDocs(directQuery)
+      ]);
+      
+      const allNotifications = [];
+      
+      allSnap.forEach(doc => {
+        allNotifications.push({ id: doc.id, ...doc.data() });
+      });
+      
+      gradeSnap.forEach(doc => {
+        if (!allNotifications.find(n => n.id === doc.id)) {
+          allNotifications.push({ id: doc.id, ...doc.data() });
+        }
+      });
+      
+      studentSnap.forEach(doc => {
+        if (!allNotifications.find(n => n.id === doc.id)) {
+          allNotifications.push({ id: doc.id, ...doc.data() });
+        }
+      });
+      
+      directSnap.forEach(doc => {
+        if (!allNotifications.find(n => n.id === doc.id)) {
+          allNotifications.push({ id: doc.id, ...doc.data() });
+        }
+      });
+      
+      allNotifications.sort((a, b) => {
+        const timeA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+        const timeB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+        return timeB - timeA;
+      });
+      
+      // ✅ فلترة: استبعاد طلبات الربط (عشان تظهر في القسم المنفصل)
+      const normalNotifications = allNotifications.filter(n => n.type !== 'parent_request');
+      
+      setNotifications(normalNotifications);
+      
+      // ✅ دمج كل الإشعارات للعد
+      const allCombined = [...normalNotifications, ...linkRequests];
+      allCombined.sort((a, b) => {
+        const timeA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+        const timeB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+        return timeB - timeA;
+      });
+      setAllNotifications(allCombined);
+
+      // ✅ ✅ تحديث عدد الإشعارات الغير مقروءة
+      updateUnreadCount(allCombined, studentId);
+      
+    } catch (error) {
+      console.error('❌ خطأ في جلب الإشعارات:', error);
+    }
+  };
+
+  // ✅ ✅ حساب عدد الإشعارات الغير مقروءة
+  const updateUnreadCount = (notificationsList: any[], studentId: string) => {
+    const count = notificationsList.filter(n => {
+      if (n.type === 'parent_request') return true;
+      return !n.readBy?.includes(studentId);
+    }).length;
+    setUnreadCount(count);
+  };
+
+  // ✅ ✅ لما يفتح لوحة الإشعارات، يخلي العداد صفر (كل الإشعارات تُعتبر مقروءة)
+  const handleOpenNotifications = () => {
+    setShowNotificationPanel(!showNotificationPanel);
+    if (!showNotificationPanel) {
+      // ✅ نحدّث العداد على طول بدون انتظار
+      setUnreadCount(0);
+    }
+  };
+
+  // ✅ الموافقة على طلب الربط
+  const acceptLinkRequest = async (request: any) => {
+    try {
+      await updateDoc(doc(db, 'notifications', request.id), {
+        status: 'accepted',
+        updatedAt: serverTimestamp(),
+      });
+
+      const parentRef = doc(db, 'users', request.parentId);
+      const parentDoc = await getDoc(parentRef);
+      if (parentDoc.exists()) {
+        const parentData = parentDoc.data();
+        const childrenList = parentData.children || [];
+        if (!childrenList.includes(userId)) {
+          childrenList.push(userId);
+          await updateDoc(parentRef, {
+            children: childrenList,
+          });
+        }
+      }
+
+      setLinkRequests(linkRequests.filter(r => r.id !== request.id));
+      setMessage(`✅ تم ربطك بـ ${request.parentName} بنجاح!`);
+
+    } catch (error) {
+      console.error('❌ خطأ:', error);
+      setMessage('❌ حدث خطأ في الموافقة');
+    }
+  };
+
+  // ✅ رفض طلب الربط
+  const rejectLinkRequest = async (request: any) => {
+    try {
+      await updateDoc(doc(db, 'notifications', request.id), {
+        status: 'rejected',
+        updatedAt: serverTimestamp(),
+      });
+
+      setLinkRequests(linkRequests.filter(r => r.id !== request.id));
+      setMessage(`❌ تم رفض طلب الربط من ${request.parentName}`);
+
+    } catch (error) {
+      console.error('❌ خطأ:', error);
+      setMessage('❌ حدث خطأ في الرفض');
+    }
+  };
+
+  // ✅ علامة كـ "مقروء"
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const notifRef = doc(db, "notifications", notificationId);
+      await updateDoc(notifRef, {
+        readBy: [...(notifications.find(n => n.id === notificationId)?.readBy || []), userId]
+      });
+      
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId 
+          ? { ...n, readBy: [...(n.readBy || []), userId] }
+          : n
+      ));
+      
+      // ✅ تحديث العداد
+      const updatedAll = allNotifications.map(n => 
+        n.id === notificationId 
+          ? { ...n, readBy: [...(n.readBy || []), userId] }
+          : n
+      );
+      updateUnreadCount(updatedAll, userId);
+      
+    } catch (err) {
+      console.error("خطأ:", err);
+    }
+  };
+
+  // ✅ جلب المواد وحساب التقدم الحقيقي
+  const fetchSubjects = async (userYear: string, studentId: string) => {
+    try {
+      setSubjectsLoading(true);
+      setFetchError(null);
+
+      const subjectsSnapshot = await getDocs(collection(db, 'subjects'));
+      const allSubjects: any[] = [];
+      
+      for (const doc of subjectsSnapshot.docs) {
+        const data = doc.data();
+        
+        let teacherName = data.teacherName || 'لم يحدد';
+        
+        if (data.teacherId && !data.teacherName) {
+          try {
+            const teacherRef = doc(db, 'users', data.teacherId);
+            const teacherDoc = await getDoc(teacherRef);
+            if (teacherDoc.exists()) {
+              teacherName = teacherDoc.data().name || 'لم يحدد';
+            }
+          } catch (e) {
+            console.log('❌ خطأ في جلب اسم المدرس:', e);
+          }
+        }
+        
+        allSubjects.push({
+          id: doc.id,
+          ...data,
+          teacherName: teacherName,
+        });
+      }
+
+      let enrolledData: any[] = [];
+      try {
+        const enrolledSnapshot = await getDocs(
+          query(collection(db, 'student_subjects'), where('studentId', '==', studentId))
+        );
+        enrolledData = enrolledSnapshot.docs.map((doc) => ({
+          subjectId: doc.data().subjectId,
+          progress: doc.data().progress || 0,
+        }));
+      } catch (e) {
+        console.log('لا توجد مواد مسجل فيها');
+      }
+
+      const subjectsWithStatus = allSubjects.map((subject) => {
+        const enrolled = enrolledData.find((e) => e.subjectId === subject.id);
+        return {
+          ...subject,
+          isEnrolled: !!enrolled,
+          progress: enrolled?.progress || 0,
+        };
+      });
+
+      setSubjects(subjectsWithStatus);
+
+      // ✅ حساب التقدم الحقيقي (متوسط تقدم المواد المسجل فيها)
+      const enrolledSubjects = subjectsWithStatus.filter(s => s.isEnrolled);
+      const openedCount = enrolledSubjects.length;
+      
+      let realProgress = 0;
+      if (enrolledSubjects.length > 0) {
+        const totalProgress = enrolledSubjects.reduce((sum, s) => sum + (s.progress || 0), 0);
+        realProgress = Math.round(totalProgress / enrolledSubjects.length);
+      }
+
+      setStats(prev => ({
+        ...prev,
+        total: subjectsWithStatus.length,
+        opened: openedCount,
+        progress: realProgress, // ✅ التقدم الحقيقي
+      }));
+
+    } catch (error: any) {
+      console.error('خطأ في جلب المواد:', error);
+      setFetchError(error?.message || 'فشل تحميل المواد');
+      setSubjects([]);
+    } finally {
+      setSubjectsLoading(false);
+    }
+  };
+
+  // ✅ ✅ دالة تحويل اسم المرحلة - مع إضافة تالتة ثانوي
+  const getYearName = (yearCode: string) => {
+    const yearMap: { [key: string]: string } = {
+      '1-prep': 'أولى إعدادي',
+      '2-prep': 'ثانية إعدادي',
+      '3-prep': 'تالتة إعدادي', // ✅ ✅ تالتة ثانوي
+      '1-secondary': 'أولى ثانوي',
+      '2-secondary': 'ثانية ثانوي',
+      '3-secondary': 'تالتة ثانوي', // ✅ ✅ تالتة ثانوي
+    };
+    return yearMap[yearCode] || yearCode || 'غير محدد';
+  };
+
+  const getDisplayedSubjects = () => {
+    if (activeCategory === 'all') {
+      return subjects;
+    }
+    return subjects.filter((s) => s.category === activeCategory);
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = '/login';
+  };
+
+  const handleEnroll = async (subjectId: string) => {
+    try {
+      const { addDoc, serverTimestamp } = await import('firebase/firestore');
+      await addDoc(collection(db, 'student_subjects'), {
+        studentId: user.id,
+        subjectId: subjectId,
+        progress: 0,
+        isActive: true,
+        enrolledAt: serverTimestamp(),
+      });
+      setSubjects((prev) =>
+        prev.map((s) =>
+          s.id === subjectId ? { ...s, isEnrolled: true, progress: 0 } : s
+        )
+      );
+      alert('✅ تم التسجيل في المادة بنجاح');
+    } catch (error) {
+      console.error(error);
+      alert('❌ حدث خطأ في التسجيل');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.loadingSpinner}></div>
+        <p style={styles.loadingText}>جاري تحميل المنصة...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.lockIcon}>🔒</div>
+        <p style={styles.loadingText}>يجب تسجيل الدخول أولاً</p>
+        <Link href="/login" style={styles.loginLink}>
+          تسجيل الدخول
+        </Link>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.errorIcon}>⚠️</div>
+        <p style={styles.loadingText}>حدث خطأ في تحميل البيانات</p>
+        <p style={styles.errorText}>{fetchError}</p>
+        <button onClick={() => window.location.reload()} style={styles.retryButton}>
+          إعادة المحاولة
+        </button>
+      </div>
+    );
+  }
+
+  const userYear = getYearName(user.year || user.grade || '');
+  const displayedSubjects = getDisplayedSubjects();
+
+  const getTypeStyle = (type: string) => {
+    switch(type) {
+      case 'success': return { background: 'rgba(16,185,129,0.1)', color: '#34d399', borderColor: '#10b981' };
+      case 'warning': return { background: 'rgba(245,158,11,0.1)', color: '#f59e0b', borderColor: '#f59e0b' };
+      case 'error': return { background: 'rgba(239,68,68,0.1)', color: '#f87171', borderColor: '#ef4444' };
+      default: return { background: 'rgba(59,130,246,0.1)', color: '#60a5fa', borderColor: '#3b82f6' };
+    }
+  };
 
   return (
     <div style={styles.container}>
-      <div style={styles.background}></div>
-      <div style={styles.backgroundOverlay}></div>
-
+      {/* ✅ الهيدر */}
       <header
         style={{
           ...styles.header,
-          background: isScrolled ? 'rgba(10, 10, 20, 0.92)' : 'transparent',
-          backdropFilter: isScrolled ? 'blur(20px)' : 'none',
-          borderBottom: isScrolled ? '1px solid rgba(255, 215, 0, 0.1)' : 'none',
+          opacity: isMobile ? headerOpacity : 1,
+          transition: 'opacity 0.1s ease-out',
         }}
       >
-        <div style={isMobile ? styles.headerContentMobile : styles.headerContent}>
-          <div style={styles.logo}>
-            <div style={styles.logoIconWrapper}>
-              <span style={styles.logoIcon}>✦</span>
-            </div>
-            <div style={styles.logoText}>
-              <h1 style={styles.logoMain}>Fancy Academic</h1>
+        <div style={styles.headerContent}>
+          <div style={styles.logoSection}>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              style={styles.menuToggle}
+            >
+              ☰
+            </button>
+            <div>
+              <h1 style={styles.logo}>✨ Fancy Academic</h1>
               <p style={styles.logoSub}>منصة التعليم الذكية</p>
             </div>
           </div>
 
-          <nav style={isMobile ? styles.navMobile : styles.nav}>
-            <button style={styles.navButton} onClick={() => router.push('/login')}>
-              تسجيل الدخول
+          <div style={styles.userSection}>
+            {/* ✅ ✅ زر الإشعارات مع العداد - يختفي عند الضغط */}
+            <button 
+              onClick={handleOpenNotifications}
+              style={styles.notifButton}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span style={styles.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
             </button>
-            <button style={styles.navButtonPrimary} onClick={() => router.push('/register')}>
-              انضم الآن
-            </button>
-          </nav>
+
+            <div style={styles.statsBadges}>
+              <span style={styles.xpBadge}>⭐ {stats.xp}</span>
+              <span style={styles.levelBadge}>🎯 {stats.level}</span>
+              <span style={styles.streakBadge}>
+                🔥 {stats.streak}
+                {stats.freezes > 0 && (
+                  <span style={styles.freezeBadge}> ❄️{stats.freezes}</span>
+                )}
+              </span>
+            </div>
+
+            <div style={styles.userAvatar}>{user.name?.charAt(0) || 'ط'}</div>
+            <div style={styles.userInfo}>
+              <div style={styles.userName}>{user.name || 'طالب'}</div>
+              <div style={styles.userBadge}>{userYear}</div>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main style={styles.main}>
-        <div style={isMobile ? styles.heroMobile : styles.hero}>
-          <div style={styles.heroContent}>
-            <div style={styles.heroBadge}>
-              <span style={styles.badgeDot}></span>
-              منصة تعليمية متطورة
+      {/* ✅ صندوق الإشعارات المخصص */}
+      {showNotificationPanel && (
+        <>
+          <div style={styles.overlay} onClick={() => setShowNotificationPanel(false)} />
+          <div style={styles.notificationPanel}>
+            <div style={styles.panelHeader}>
+              <h3 style={styles.panelTitle}>🔔 الإشعارات</h3>
+              <button onClick={() => setShowNotificationPanel(false)} style={styles.closeBtn}>✕</button>
             </div>
+            
+            <div style={styles.panelContent}>
+              {allNotifications.length === 0 ? (
+                <div style={styles.empty}>لا توجد إشعارات</div>
+              ) : (
+                allNotifications.map((item) => {
+                  // ✅ طلب ربط ولي الأمر
+                  if (item.type === 'parent_request') {
+                    return (
+                      <div key={item.id} style={styles.linkRequestCard}>
+                        <div style={styles.linkRequestInfo}>
+                          <span style={styles.linkRequestIcon}>👤</span>
+                          <div>
+                            <div style={styles.linkRequestName}>{item.parentName}</div>
+                            <div style={styles.linkRequestMessage}>{item.message || 'يريد ربطك بحسابه'}</div>
+                          </div>
+                        </div>
+                        <div style={styles.linkRequestActions}>
+                          <button
+                            onClick={() => acceptLinkRequest(item)}
+                            style={styles.acceptButton}
+                          >
+                            ✅ موافقة
+                          </button>
+                          <button
+                            onClick={() => rejectLinkRequest(item)}
+                            style={styles.rejectButton}
+                          >
+                            ❌ رفض
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
 
-            <h1 style={styles.heroTitle}>
-              تعلم بذكاء مع
-              <span style={styles.heroHighlight}> Fancy Academic</span>
-            </h1>
-
-            <p style={styles.heroDescription}>
-              منصة تعليمية ذكية تجمع لك أفضل المدرسين المتخصصين في المواد العلمية،
-              مع نظام متابعة وتقييم متطور يحفزك على التفوق
-            </p>
-
-            <div style={isMobile ? styles.heroButtonsMobile : styles.heroButtons}>
-              <button style={styles.primaryButton} onClick={() => router.push('/register')}>
-                ✨ ابدأ رحلتك الآن
-              </button>
-              <button style={styles.secondaryButton} onClick={() => router.push('/login')}>
-                ← تسجيل الدخول
-              </button>
+                  // ✅ إشعار عادي
+                  const isRead = item.readBy?.includes(userId);
+                  const typeStyle = getTypeStyle(item.notificationType || item.type);
+                  
+                  return (
+                    <div 
+                      key={item.id} 
+                      style={{...styles.notificationItem, ...typeStyle, opacity: isRead ? 0.6 : 1}}
+                      onClick={() => !isRead && markAsRead(item.id)}
+                    >
+                      <div style={styles.notifHeader}>
+                        <span style={styles.notifTitle}>{item.title}</span>
+                        <span style={styles.notifTime}>
+                          {item.createdAt?.toDate?.() 
+                            ? new Date(item.createdAt.toDate()).toLocaleString('ar-EG')
+                            : new Date(item.createdAt).toLocaleString('ar-EG')}
+                        </span>
+                      </div>
+                      <p style={styles.notifBody}>{item.body}</p>
+                      {!isRead && <div style={styles.unreadDot}>جديد</div>}
+                    </div>
+                  );
+                })
+              )}
             </div>
+          </div>
+        </>
+      )}
 
-            <div style={isMobile ? styles.statsMobile : styles.stats}>
-              <div style={styles.statItem}>
-                <span style={styles.statNumber}>✦</span>
-                <span style={styles.statLabel}>تجربة تعلم فريدة</span>
+      <div style={styles.mainContent}>
+        {/* ✅ السايدبار */}
+        {isSidebarOpen && (
+          <aside
+            style={{
+              ...styles.sidebar,
+              width: isMobile ? '250px' : '300px',
+              position: 'fixed',
+              top: '80px',
+              right: '0',
+              zIndex: 1000,
+              boxShadow: '-5px 0 15px rgba(0,0,0,0.2)',
+              height: 'calc(100vh - 80px)',
+            }}
+          >
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              style={styles.closeSidebarButton}
+            >
+              ✕
+            </button>
+
+            <div style={styles.sidebarContent}>
+              <div style={styles.yearCard}>
+                <div style={styles.yearIcon}>📚</div>
+                <div style={styles.yearInfo}>
+                  <div style={styles.yearLabel}>سنتك الدراسية</div>
+                  <div style={styles.yearValue}>{userYear}</div>
+                </div>
               </div>
-              <div style={styles.statItem}>
-                <span style={styles.statNumber}>✦</span>
-                <span style={styles.statLabel}>مدرسون متخصصون</span>
+
+              <div style={styles.statsCard}>
+                <h3 style={styles.statsTitle}>📊 إحصائياتك</h3>
+                <div style={styles.statsList}>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>⭐</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.xp}</div>
+                      <div style={styles.statLabel}>نقاط خبرة</div>
+                    </div>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>🎯</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.level}</div>
+                      <div style={styles.statLabel}>المستوى</div>
+                    </div>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>🔥</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.streak}</div>
+                      <div style={styles.statLabel}>حماس يومي</div>
+                    </div>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>❄️</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.freezes}</div>
+                      <div style={styles.statLabel}>تجميدات</div>
+                    </div>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>💎</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.gems}</div>
+                      <div style={styles.statLabel}>جواهر</div>
+                    </div>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>📚</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.total}</div>
+                      <div style={styles.statLabel}>مواد</div>
+                    </div>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statIcon}>📈</span>
+                    <div>
+                      <div style={styles.statNumber}>{stats.progress}%</div>
+                      <div style={styles.statLabel}>تقدم تعليمي</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div style={styles.statItem}>
-                <span style={styles.statNumber}>✦</span>
-                <span style={styles.statLabel}>نظام تحفيزي متطور</span>
+
+              <div style={styles.quickLinks}>
+                <h4 style={styles.quickTitle}>روابط سريعة</h4>
+
+                <Link href="/map" style={styles.quickLink}>
+                  <span>🗺️</span>
+                  <span>الخريطة التعليمية</span>
+                </Link>
+
+                <Link href="/spin" style={styles.quickLink}>
+                  <span>🎡</span>
+                  <span>عجلة الحظ</span>
+                </Link>
+
+                <Link href="/bot" style={styles.quickLink}>
+                  <span>🤖</span>
+                  <span>المساعد الذكي</span>
+                </Link>
+
+                <Link href="/support/chat" style={styles.quickLink}>
+                  <span>💬</span>
+                  <span>الدعم الفني</span>
+                </Link>
+
+                <a href={whatsappLink} target="_blank" style={styles.quickLink}>
+                  <span>📱</span>
+                  <span>واتساب</span>
+                </a>
+
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    ...styles.quickLink,
+                    background: '#fee2e2',
+                    color: '#dc2626',
+                    border: 'none',
+                    width: '100%',
+                    cursor: 'pointer',
+                    marginTop: '10px',
+                  }}
+                >
+                  <span>🚪</span>
+                  <span>تسجيل الخروج</span>
+                </button>
               </div>
             </div>
-          </div>
+          </aside>
+        )}
 
-          <div style={styles.heroImage}>
-            <div style={styles.imageWrapper}>
-              <div style={styles.imageContent}>
-                <div style={styles.mainIcon}>📚</div>
-                <p style={styles.imageText}>تعلم بذكاء، تفوق بثقة</p>
-              </div>
+        <main
+          style={{
+            ...styles.mainArea,
+            padding: isMobile ? '15px' : '25px',
+            width: '100%',
+          }}
+        >
+          {/* ✅ رسالة الحالة */}
+          {message && (
+            <div style={{
+              ...styles.messageBox,
+              background: message.includes('✅') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              color: message.includes('✅') ? '#34d399' : '#f87171',
+            }}>
+              {message}
+            </div>
+          )}
+
+          <div style={styles.navBar}>
+            <div style={styles.breadcrumb}>
+              <span>الرئيسية</span>
+              {activeCategory !== 'all' && (
+                <>
+                  <span style={styles.breadcrumbSeparator}>/</span>
+                  <span style={styles.breadcrumbActive}>{activeCategory}</span>
+                </>
+              )}
             </div>
           </div>
-        </div>
 
-        <div style={styles.features}>
-          <div style={styles.featuresHeader}>
-            <span style={styles.featuresBadge}>✦ مميزاتنا</span>
-            <h2 style={styles.featuresTitle}>لماذا تختارنا؟</h2>
-          </div>
-
-          <div style={isMobile ? styles.featuresGridMobile : styles.featuresGrid}>
-            <div style={styles.featureCard}>
-              <div style={styles.featureIconWrapper}>👨‍🏫</div>
-              <h3 style={styles.featureTitle}>مدرسين متخصصين</h3>
-              <p style={styles.featureText}>كل مادة يدرسها مدرس متخصص مع متابعة فردية</p>
-            </div>
-
-            <div style={styles.featureCard}>
-              <div style={styles.featureIconWrapper}>📖</div>
-              <h3 style={styles.featureTitle}>محتوى متميز</h3>
-              <p style={styles.featureText}>دروس فيديو، واجبات، امتحانات، وملفات تفاعلية</p>
-            </div>
-
-            <div style={styles.featureCard}>
-              <div style={styles.featureIconWrapper}>📊</div>
-              <h3 style={styles.featureTitle}>متابعة دقيقة</h3>
-              <p style={styles.featureText}>تقارير مفصلة عن تقدمك ونقاط قوتك وضعفك</p>
-            </div>
-
-            <div style={styles.featureCard}>
-              <div style={styles.featureIconWrapper}>🏆</div>
-              <h3 style={styles.featureTitle}>نظام تحفيزي</h3>
-              <p style={styles.featureText}>نقاط ومكافآت وشارات تحفزك على الاستمرار</p>
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.subjectsSection}>
-          <div style={styles.sectionHeader}>
-            <span style={styles.sectionBadge}>✦ المواد</span>
-            <h2 style={styles.sectionTitle}>مواد تعليمية متخصصة</h2>
-            <p style={styles.sectionSubtitle}>
-              نوفر لك مجموعة متنوعة من المواد التعليمية المتخصصة التي تلبي احتياجاتك،
-              مع محتوى متكامل يضمن لك الفهم العميق والإتقان
-            </p>
-          </div>
-
-          <div style={isMobile ? styles.subjectsGridMobile : styles.subjectsGrid}>
-            <div style={styles.subjectCard}>
-              <div style={styles.subjectIcon}>📐</div>
-              <h3 style={styles.subjectTitle}>الرياضيات</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
-            </div>
-
-            <div style={styles.subjectCard}>
-              <div style={styles.subjectIcon}>🧪</div>
-              <h3 style={styles.subjectTitle}>الكيمياء</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
-            </div>
-
-            <div style={styles.subjectCard}>
-              <div style={styles.subjectIcon}>⚛️</div>
-              <h3 style={styles.subjectTitle}>الفيزياء</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
-            </div>
-
-            <div style={styles.subjectCard}>
-              <div style={styles.subjectIcon}>🧬</div>
-              <h3 style={styles.subjectTitle}>الأحياء</h3>
-              <p style={styles.subjectDesc}>قريباً</p>
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.supportSection}>
-          <div style={styles.supportCard}>
-            <div style={styles.supportContent}>
-              <h2 style={styles.supportTitle}>💬 تواصل مع الدعم</h2>
-              <p style={styles.supportText}>
-                لديك استفسار أو تحتاج مساعدة؟ فريق الدعم جاهز لمساعدتك في أي وقت
+          <div style={isMobile ? styles.welcomeBannerMobile : styles.welcomeBanner}>
+            <div>
+              <h2 style={isMobile ? styles.welcomeTitleMobile : styles.welcomeTitle}>
+                مرحباً {user.name} 👋
+              </h2>
+              <p style={isMobile ? styles.welcomeTextMobile : styles.welcomeText}>
+                {userYear === 'ثانية ثانوي' || userYear === 'تالتة ثانوي'
+                  ? 'يعرض هنا المواد حسب التخصص'
+                  : `هذه هي المواد المتاحة لسنتك الدراسية (${userYear})`}
               </p>
-              <a 
-                href="https://wa.me/message/UKASWZCU5BNLN1?src=qr" 
-                target="_blank" 
-                style={styles.supportButton}
+            </div>
+            <div style={styles.userProgress}>
+              <span style={styles.levelBadge}>🎯 المستوى {stats.level}</span>
+              <span style={styles.streakBadge}>
+                🔥 {stats.streak} يوم
+                {stats.freezes > 0 && (
+                  <span style={styles.freezeBadge}> ❄️{stats.freezes}</span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* ✅ ✅ أزرار التصنيف للمراحل الثانوية (تانية وتالتة ثانوي) */}
+          {(userYear === 'ثانية ثانوي' || userYear === 'تالتة ثانوي') && (
+            <div style={isMobile ? styles.categoriesBarMobile : styles.categoriesBar}>
+              <button
+                onClick={() => setActiveCategory('all')}
+                style={{
+                  ...styles.categoryButton,
+                  background: activeCategory === 'all' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                  color: activeCategory === 'all' ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: isMobile ? '14px' : '15px',
+                  padding: isMobile ? '8px 16px' : '10px 20px',
+                }}
               >
-                تواصل معنا
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.ctaSection}>
-          <div style={styles.ctaCard}>
-            <div style={styles.ctaContent}>
-              <h2 style={styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
-              <p style={styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
-              <button style={styles.ctaButton} onClick={() => router.push('/register')}>
-                ✦ إنشاء حساب مجاني
+                📚 الكل
+              </button>
+              <button
+                onClick={() => setActiveCategory('كيمياء')}
+                style={{
+                  ...styles.categoryButton,
+                  background: activeCategory === 'كيمياء' ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
+                  color: activeCategory === 'كيمياء' ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: isMobile ? '14px' : '15px',
+                  padding: isMobile ? '8px 16px' : '10px 20px',
+                }}
+              >
+                ⚗️ كيمياء
+              </button>
+              <button
+                onClick={() => setActiveCategory('فيزياء')}
+                style={{
+                  ...styles.categoryButton,
+                  background: activeCategory === 'فيزياء' ? '#ef4444' : 'rgba(255,255,255,0.05)',
+                  color: activeCategory === 'فيزياء' ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: isMobile ? '14px' : '15px',
+                  padding: isMobile ? '8px 16px' : '10px 20px',
+                }}
+              >
+                ⚛️ فيزياء
+              </button>
+              {/* ✅ ✅ إضافة أزرار إضافية لتالتة ثانوي لو احتجت */}
+              <button
+                onClick={() => setActiveCategory('أحياء')}
+                style={{
+                  ...styles.categoryButton,
+                  background: activeCategory === 'أحياء' ? '#10b981' : 'rgba(255,255,255,0.05)',
+                  color: activeCategory === 'أحياء' ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: isMobile ? '14px' : '15px',
+                  padding: isMobile ? '8px 16px' : '10px 20px',
+                }}
+              >
+                🧬 أحياء
+              </button>
+              <button
+                onClick={() => setActiveCategory('جيولوجيا')}
+                style={{
+                  ...styles.categoryButton,
+                  background: activeCategory === 'جيولوجيا' ? '#f59e0b' : 'rgba(255,255,255,0.05)',
+                  color: activeCategory === 'جيولوجيا' ? 'white' : 'rgba(255,255,255,0.6)',
+                  fontSize: isMobile ? '14px' : '15px',
+                  padding: isMobile ? '8px 16px' : '10px 20px',
+                }}
+              >
+                🌍 جيولوجيا
               </button>
             </div>
-          </div>
-        </div>
-      </main>
+          )}
 
-      <footer style={styles.footer}>
-        <div style={styles.footerContent}>
-          <div style={isMobile ? styles.footerTopMobile : styles.footerTop}>
-            <div style={styles.footerInfo}>
-              <div style={styles.footerLogo}>
-                <span style={styles.footerLogoIcon}>✦</span>
-                <h3 style={styles.footerTitle}>Fancy Academic</h3>
-              </div>
-              <p style={styles.footerText}>
-                منصة التعليم الذكية التي تجمع بين المدرسين المتخصصين والتقنيات الحديثة
+          {subjectsLoading ? (
+            <div style={styles.loadingCourses}>
+              <div style={styles.spinner}></div>
+              <p>جاري تحميل المواد...</p>
+            </div>
+          ) : displayedSubjects.length === 0 ? (
+            <div style={styles.emptyState}>
+              <div style={styles.emptyIcon}>📭</div>
+              <h3 style={styles.emptyTitle}>
+                {(userYear === 'ثانية ثانوي' || userYear === 'تالتة ثانوي') && activeCategory !== 'all'
+                  ? `لا توجد مواد في ${activeCategory}`
+                  : 'لا توجد مواد متاحة'}
+              </h3>
+              <p style={styles.emptyText}>
+                {(userYear === 'ثانية ثانوي' || userYear === 'تالتة ثانوي') && activeCategory !== 'all'
+                  ? 'سيتم إضافة مواد قريباً'
+                  : 'يمكنك التواصل مع الدعم لمعرفة المزيد'}
               </p>
             </div>
+          ) : (
+            <div style={isMobile ? styles.coursesGridMobile : styles.coursesGrid}>
+              {displayedSubjects.map((subject) => (
+                <div
+                  key={subject.id}
+                  style={isMobile ? styles.courseCardMobile : styles.courseCard}
+                >
+                  <div style={styles.courseHeader}>
+                    <div style={styles.courseIcon}>
+                      {subject.isEnrolled ? '📖' : '📚'}
+                    </div>
+                    <div>
+                      <h3
+                        style={
+                          isMobile
+                            ? styles.courseTitleMobile
+                            : styles.courseTitle
+                        }
+                      >
+                        {subject.name}
+                      </h3>
+                      {subject.grade && (
+                        <span
+                          style={{
+                            ...styles.courseCategory,
+                            background: 'rgba(255,255,255,0.05)',
+                            color: 'rgba(255,255,255,0.6)',
+                          }}
+                        >
+                          {subject.grade}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-            <div style={styles.footerLinks}>
-              <h4 style={styles.footerLinksTitle}>روابط سريعة</h4>
-              <Link href="/login" style={styles.footerLink}>تسجيل الدخول</Link>
-              <Link href="/register" style={styles.footerLink}>إنشاء حساب</Link>
-              <a href="https://wa.me/message/UKASWZCU5BNLN1?src=qr" target="_blank" style={styles.footerLink}>الدعم الفني</a>
+                  <p
+                    style={
+                      isMobile
+                        ? styles.courseDescriptionMobile
+                        : styles.courseDescription
+                    }
+                  >
+                    {subject.description || 'مادة تعليمية متخصصة'}
+                  </p>
+
+                  {subject.isEnrolled && (
+                    <div style={styles.progressContainer}>
+                      <div style={styles.progressBar}>
+                        <div
+                          style={{
+                            ...styles.progressFill,
+                            width: `${subject.progress || 0}%`,
+                          }}
+                        />
+                      </div>
+                      <span style={styles.progressText}>
+                        {subject.progress || 0}%
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={styles.courseMeta}>
+                    <span>📅 {new Date(subject.createdAt).toLocaleDateString('ar-EG')}</span>
+                    <span>👨‍🏫 {subject.teacherName || 'لم يحدد'}</span>
+                  </div>
+
+                  <div style={styles.courseFooter}>
+                    <span
+                      style={{
+                        ...styles.statusBadge,
+                        background: subject.isEnrolled ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: subject.isEnrolled ? '#34d399' : '#f87171',
+                      }}
+                    >
+                      {subject.isEnrolled ? '✅ مسجل' : '🔒 غير مسجل'}
+                    </span>
+
+                    {subject.isEnrolled ? (
+                      <Link href={`/subject/${subject.id}`} style={styles.courseButton}>
+                        دخول المادة ←
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => handleEnroll(subject.id)}
+                        style={styles.enrollButton}
+                      >
+                        ➕ تسجيل
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
+        </main>
+      </div>
 
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>© {new Date().getFullYear()} Fancy Academic. جميع الحقوق محفوظة</p>
+      {/* ✅ الفوتر */}
+      <footer style={styles.oldFooter}>
+        <div style={isMobile ? styles.footerContentMobile : styles.footerContent}>
+          <p style={styles.footerText}>
+            © 2026 Fancy Academic - منصة التعليم الذكية
+          </p>
+          <div style={isMobile ? styles.footerLinksMobile : styles.footerLinks}>
+            <span style={styles.footerLink}>سياسة الخصوصية</span>
+            <span style={styles.footerLink}>الشروط والأحكام</span>
+            <span style={styles.footerLink}>اتصل بنا</span>
+          </div>
+          <div style={styles.footerSupport}>
+            <p style={styles.supportInfo}>
+              تطوير:{' '}
+              <a
+                href="mailto:tomasmehany@gmail.com"
+                style={styles.footerSupportLink}
+              >
+                tomasmehany@gmail.com
+              </a>
+            </p>
+            <p style={styles.supportInfo}>
+              للدعم:
+              <a
+                href={whatsappLink}
+                target="_blank"
+                style={styles.footerSupportLink}
+              >
+                واتساب
+              </a>
+            </p>
           </div>
         </div>
       </footer>
 
-      <style jsx>{`
-        @keyframes gradientMove {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
+      <div style={isMobile ? styles.floatingButtonsMobile : styles.floatingButtons}>
+        <Link
+          href="/bot"
+          style={{
+            ...styles.floatingButton,
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+          }}
+          title="المساعد الذكي"
+        >
+          🤖
+        </Link>
+      </div>
 
-        /* ✅ ✅ التعديلات بس للموبايل - الكمبيوتر زي ما هو */
-        @media (max-width: 768px) {
-          .hero-title {
-            font-size: 28px !important;
+      <style jsx>{`
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
           }
-          .hero-description {
-            font-size: 14px !important;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
           }
-          .primary-button {
-            padding: 10px 20px !important;
-            font-size: 13px !important;
-          }
-          .secondary-button {
-            padding: 10px 20px !important;
-            font-size: 13px !important;
-          }
-          .features-title {
-            font-size: 24px !important;
-          }
-          .section-title {
-            font-size: 24px !important;
-          }
-          .section-subtitle {
-            font-size: 13px !important;
-          }
-          .support-title {
-            font-size: 20px !important;
-          }
-          .support-text {
-            font-size: 13px !important;
-          }
-          .cta-title {
-            font-size: 22px !important;
-          }
-          .cta-text {
-            font-size: 13px !important;
-          }
-          .cta-button {
-            padding: 10px 20px !important;
-            font-size: 13px !important;
-          }
-          .logo-main {
-            font-size: 16px !important;
-          }
-          .nav-button {
-            font-size: 12px !important;
-            padding: 6px 14px !important;
-          }
-          .nav-button-primary {
-            font-size: 12px !important;
-            padding: 6px 14px !important;
-          }
-          .stat-number {
-            font-size: 20px !important;
-          }
-          .stat-label {
-            font-size: 10px !important;
-          }
-          .feature-title {
-            font-size: 14px !important;
-          }
-          .feature-text {
-            font-size: 11px !important;
-          }
-          .subject-title {
-            font-size: 14px !important;
-          }
-          .subject-desc {
-            font-size: 10px !important;
-          }
-          .main-icon {
-            font-size: 50px !important;
-          }
-          .image-text {
-            font-size: 13px !important;
-          }
-          .footer-title {
-            font-size: 16px !important;
-          }
-          .footer-text {
-            font-size: 12px !important;
-          }
-          .footer-link {
-            font-size: 12px !important;
-          }
-          .copyright {
-            font-size: 10px !important;
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
       `}</style>
@@ -351,575 +1176,858 @@ export default function Home() {
   );
 }
 
-const styles: any = {
+// ✅ جميع الأنماط (نفس اللي موجود)
+const styles = {
   container: {
     minHeight: '100vh',
-    background: '#0a0a14',
-    fontFamily: '"Cairo", "Segoe UI", Tahoma, sans-serif',
+    background: 'linear-gradient(135deg, #0a0a14 0%, #1a1a2e 100%)',
     direction: 'rtl',
-    position: 'relative',
-    overflowX: 'hidden',
-    color: '#ffffff',
+    fontFamily: '"Cairo", "Segoe UI", Tahoma, sans-serif',
+    color: 'white',
   },
-  background: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'linear-gradient(-45deg, #0a0a14, #1a0a2e, #0d1b2a, #0a0a14)',
-    backgroundSize: '400% 400%',
-    animation: 'gradientMove 20s ease infinite',
-    zIndex: 0,
+  loadingContainer: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg, #0a0a14 0%, #1a1a2e 100%)',
+    color: 'white',
   },
-  backgroundOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'radial-gradient(circle at 30% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 60%)',
-    zIndex: 1,
+  loadingSpinner: {
+    width: '50px',
+    height: '50px',
+    border: '4px solid rgba(255, 215, 0, 0.1)',
+    borderTopColor: '#FFD700',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '20px',
+  },
+  loadingText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: '18px',
+    marginBottom: '20px',
+  },
+  lockIcon: {
+    fontSize: '48px',
+    marginBottom: '20px',
+  },
+  errorIcon: {
+    fontSize: '48px',
+    marginBottom: '20px',
+  },
+  errorText: {
+    color: '#f87171',
+    fontSize: '14px',
+    marginBottom: '20px',
+    maxWidth: '400px',
+    textAlign: 'center',
+  },
+  retryButton: {
+    padding: '12px 30px',
+    background: '#FFD700',
+    color: '#0a0a14',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontWeight: 'bold',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '16px',
+  },
+  loginLink: {
+    padding: '12px 30px',
+    background: '#FFD700',
+    color: '#0a0a14',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontWeight: 'bold',
+    transition: 'all 0.3s',
   },
   header: {
+    background: 'rgba(255,255,255,0.02)',
+    backdropFilter: 'blur(10px)',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
     position: 'sticky',
     top: 0,
     zIndex: 100,
-    padding: '15px 20px',
-    transition: 'all 0.4s ease',
   },
   headerContent: {
-    maxWidth: '1200px',
+    maxWidth: '1600px',
     margin: '0 auto',
+    padding: '15px 20px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    position: 'relative',
-    zIndex: 2,
   },
-  headerContentMobile: {
-    maxWidth: '1200px',
-    margin: '0 auto',
+  logoSection: {
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
-    gap: '12px',
-    position: 'relative',
-    zIndex: 2,
+    gap: '15px',
+  },
+  menuToggle: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: 'rgba(255,255,255,0.6)',
+    padding: '5px 10px',
+    borderRadius: '8px',
+    transition: 'background 0.3s',
   },
   logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  logoIconWrapper: {
-    width: '42px',
-    height: '42px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    animation: 'float 3s ease-in-out infinite',
-    boxShadow: '0 0 30px rgba(255, 215, 0, 0.15)',
-  },
-  logoIcon: {
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#0a0a14',
-  },
-  logoText: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  logoMain: {
-    fontSize: '22px',
+    fontSize: '24px',
     fontWeight: '800',
     color: 'white',
     margin: 0,
-    lineHeight: 1.2,
   },
   logoSub: {
-    fontSize: '10px',
-    color: '#FFD700',
-    margin: 0,
-    letterSpacing: '1px',
-    textTransform: 'uppercase',
-    opacity: 0.8,
-  },
-  nav: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-  },
-  navMobile: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  navButton: {
-    padding: '8px 18px',
-    background: 'transparent',
-    color: 'white',
-    border: '1px solid rgba(255, 215, 0, 0.2)',
-    borderRadius: '50px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    fontSize: '14px',
-  },
-  navButtonPrimary: {
-    padding: '8px 18px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    color: '#0a0a14',
-    border: 'none',
-    borderRadius: '50px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    fontSize: '14px',
-    boxShadow: '0 4px 20px rgba(255, 215, 0, 0.2)',
-  },
-  main: {
-    position: 'relative',
-    zIndex: 2,
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '40px 20px',
-  },
-  hero: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '60px',
-    alignItems: 'center',
-    marginBottom: '80px',
-    minHeight: 'calc(100vh - 200px)',
-  },
-  heroMobile: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '30px',
-    alignItems: 'center',
-    marginBottom: '60px',
-    minHeight: 'auto',
-  },
-  heroContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  heroBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px 14px',
-    background: 'rgba(255, 215, 0, 0.08)',
-    border: '1px solid rgba(255, 215, 0, 0.15)',
-    borderRadius: '50px',
     fontSize: '12px',
-    fontWeight: '600',
-    color: '#FFD700',
-    width: 'fit-content',
-  },
-  badgeDot: {
-    width: '6px',
-    height: '6px',
-    background: '#FFD700',
-    borderRadius: '50%',
-    display: 'inline-block',
-    animation: 'pulse 2s infinite',
-  },
-  heroTitle: {
-    fontSize: '52px',
-    fontWeight: '800',
-    lineHeight: 1.1,
+    color: 'rgba(255,255,255,0.4)',
     margin: 0,
   },
-  heroHighlight: {
-    display: 'block',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  heroDescription: {
-    fontSize: '17px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 1.8,
-    maxWidth: '500px',
-  },
-  heroButtons: {
-    display: 'flex',
-    gap: '15px',
-    flexWrap: 'wrap',
-    marginTop: '10px',
-  },
-  heroButtonsMobile: {
-    display: 'flex',
-    gap: '10px',
-    flexWrap: 'wrap',
-    marginTop: '10px',
-    justifyContent: 'center',
-  },
-  primaryButton: {
-    padding: '14px 30px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    color: '#0a0a14',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '16px',
-    fontWeight: '700',
-    cursor: 'pointer',
+  userSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    boxShadow: '0 4px 25px rgba(255, 215, 0, 0.25)',
+    gap: '15px',
+  },
+  notifButton: {
+    position: 'relative' as const,
+    background: 'transparent',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    padding: '8px',
+    borderRadius: '50%',
+    transition: 'all 0.3s',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  badge: {
+    position: 'absolute' as const,
+    top: '0',
+    right: '0',
+    background: '#ef4444',
+    color: 'white',
+    fontSize: '10px',
+    fontWeight: 'bold',
+    padding: '2px 6px',
+    borderRadius: '50%',
+    minWidth: '18px',
+    textAlign: 'center' as const,
+  },
+  overlay: {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    zIndex: 998,
+  },
+  notificationPanel: {
+    position: 'fixed' as const,
+    top: '80px',
+    left: '20px',
+    width: '420px',
+    maxWidth: 'calc(100% - 40px)',
+    maxHeight: 'calc(100vh - 120px)',
+    background: '#1a1a2e',
+    borderRadius: '16px',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+    zIndex: 999,
+    overflow: 'hidden',
+    direction: 'rtl' as const,
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  panelHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '15px 20px',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    background: 'rgba(255,255,255,0.02)',
+  },
+  panelTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    margin: 0,
+    color: 'white',
+  },
+  closeBtn: {
+    background: 'transparent',
+    border: 'none',
+    fontSize: '20px',
+    cursor: 'pointer',
+    color: 'rgba(255,255,255,0.5)',
+  },
+  panelContent: {
+    maxHeight: 'calc(100vh - 200px)',
+    overflowY: 'auto' as const,
+    padding: '10px',
+  },
+  linkRequestCard: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid rgba(139,92,246,0.2)',
+    background: 'rgba(139,92,246,0.05)',
+    marginBottom: '8px',
+  },
+  linkRequestInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '8px',
+  },
+  linkRequestIcon: {
+    fontSize: '28px',
+  },
+  linkRequestName: {
+    fontSize: '15px',
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  linkRequestMessage: {
+    fontSize: '13px',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  linkRequestActions: {
+    display: 'flex',
+    gap: '8px',
+  },
+  acceptButton: {
+    padding: '6px 16px',
+    background: 'rgba(16,185,129,0.15)',
+    color: '#34d399',
+    border: '1px solid rgba(16,185,129,0.2)',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '600',
+  },
+  rejectButton: {
+    padding: '6px 16px',
+    background: 'rgba(239,68,68,0.15)',
+    color: '#f87171',
+    border: '1px solid rgba(239,68,68,0.2)',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '600',
+  },
+  notificationItem: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    marginBottom: '8px',
+    cursor: 'pointer',
     transition: 'all 0.3s',
   },
-  secondaryButton: {
-    padding: '14px 30px',
-    background: 'transparent',
+  notifHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '6px',
+    flexWrap: 'wrap' as const,
+    gap: '5px',
+  },
+  notifTitle: {
+    fontWeight: 'bold',
+    fontSize: '15px',
     color: 'white',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '50px',
+  },
+  notifTime: {
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  notifBody: {
+    fontSize: '13px',
+    lineHeight: '1.5',
+    margin: '0 0 8px 0',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  unreadDot: {
+    display: 'inline-block',
+    fontSize: '10px',
+    background: '#3b82f6',
+    color: 'white',
+    padding: '2px 10px',
+    borderRadius: '20px',
+  },
+  empty: {
+    textAlign: 'center' as const,
+    padding: '30px 20px',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  messageBox: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    marginBottom: '20px',
+    border: '1px solid',
+    fontSize: '14px',
+  },
+  statsBadges: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+  },
+  xpBadge: {
+    padding: '4px 10px',
+    background: 'rgba(16, 185, 129, 0.15)',
+    color: '#34d399',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
+  },
+  levelBadge: {
+    padding: '4px 10px',
+    background: 'rgba(139, 92, 246, 0.15)',
+    color: '#a78bfa',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    border: '1px solid rgba(139, 92, 246, 0.2)',
+  },
+  streakBadge: {
+    padding: '4px 10px',
+    background: 'rgba(239, 68, 68, 0.15)',
+    color: '#f87171',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    border: '1px solid rgba(239, 68, 68, 0.2)',
+  },
+  freezeBadge: {
+    padding: '2px 6px',
+    background: 'rgba(59, 130, 246, 0.15)',
+    color: '#60a5fa',
+    borderRadius: '12px',
+    fontSize: '11px',
+    marginLeft: '4px',
+  },
+  userAvatar: {
+    width: '45px',
+    height: '45px',
+    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+    color: 'white',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '18px',
+    fontWeight: 'bold',
+  },
+  userInfo: {
+    textAlign: 'right',
+  },
+  userName: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: 'white',
+  },
+  userBadge: {
+    fontSize: '12px',
+    color: '#60a5fa',
+    fontWeight: '600',
+    background: 'rgba(59, 130, 246, 0.15)',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    display: 'inline-block',
+    marginTop: '4px',
+  },
+  mainContent: {
+    position: 'relative',
+    minHeight: 'calc(100vh - 140px)',
+  },
+  sidebar: {
+    background: 'rgba(20, 20, 40, 0.95)',
+    backdropFilter: 'blur(10px)',
+    transition: 'transform 0.3s ease',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+    zIndex: 1000,
+    borderLeft: '1px solid rgba(255,255,255,0.05)',
+  },
+  closeSidebarButton: {
+    position: 'sticky',
+    top: '10px',
+    left: '10px',
+    background: 'rgba(255,255,255,0.05)',
+    border: 'none',
+    borderRadius: '50%',
+    width: '30px',
+    height: '30px',
+    fontSize: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    margin: '10px 10px 0 auto',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  sidebarContent: {
+    padding: '20px 15px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '25px',
+  },
+  yearCard: {
+    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+    color: 'white',
+    borderRadius: '12px',
+    padding: '15px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+  },
+  yearIcon: {
+    fontSize: '28px',
+    background: 'rgba(255, 255, 255, 0.2)',
+    width: '50px',
+    height: '50px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yearInfo: {
+    flex: 1,
+  },
+  yearLabel: {
+    fontSize: '12px',
+    opacity: 0.9,
+    marginBottom: '2px',
+  },
+  yearValue: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+  },
+  statsCard: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '15px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  statsTitle: {
     fontSize: '16px',
     fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    transition: 'all 0.3s',
+    color: 'rgba(255,255,255,0.8)',
+    margin: '0 0 15px 0',
   },
-  stats: {
-    display: 'flex',
-    gap: '40px',
-    marginTop: '10px',
-    paddingTop: '20px',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-  },
-  statsMobile: {
-    display: 'flex',
-    gap: '15px',
-    marginTop: '10px',
-    paddingTop: '20px',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
+  statsList: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: '12px',
   },
   statItem: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '2px',
     alignItems: 'center',
+    gap: '4px',
+    textAlign: 'center',
+    padding: '8px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '8px',
+  },
+  statIcon: {
+    fontSize: '20px',
   },
   statNumber: {
-    fontSize: '28px',
-    fontWeight: '800',
-    color: '#FFD700',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: 'white',
   },
   statLabel: {
-    fontSize: '13px',
-    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: '10px',
+    color: 'rgba(255,255,255,0.4)',
   },
-  heroImage: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
+  quickLinks: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '15px',
+    border: '1px solid rgba(255,255,255,0.05)',
   },
-  imageWrapper: {
-    width: '100%',
-    maxWidth: '450px',
-    padding: '30px',
-    position: 'relative',
-  },
-  imageContent: {
-    position: 'relative',
-    textAlign: 'center',
-    padding: '40px 20px',
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: '30px',
-    border: '1px solid rgba(255, 215, 0, 0.05)',
-    backdropFilter: 'blur(10px)',
-    minHeight: '300px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainIcon: {
-    fontSize: '72px',
-    marginBottom: '15px',
-  },
-  imageText: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  features: {
-    marginBottom: '80px',
-  },
-  featuresHeader: {
-    textAlign: 'center',
-    marginBottom: '50px',
-  },
-  featuresBadge: {
-    display: 'inline-block',
-    padding: '6px 14px',
-    background: 'rgba(255, 215, 0, 0.08)',
-    border: '1px solid rgba(255, 215, 0, 0.15)',
-    borderRadius: '50px',
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#FFD700',
-    marginBottom: '15px',
-  },
-  featuresTitle: {
-    fontSize: '36px',
-    fontWeight: '800',
-    margin: 0,
-  },
-  featuresGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '25px',
-  },
-  featuresGridMobile: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '12px',
-  },
-  featureCard: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    padding: '25px 15px',
-    borderRadius: '20px',
-    border: '1px solid rgba(255, 255, 255, 0.03)',
-    textAlign: 'center',
-    transition: 'all 0.3s',
-  },
-  featureIconWrapper: {
-    fontSize: '32px',
-    display: 'block',
-    marginBottom: '15px',
-  },
-  featureTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    marginBottom: '10px',
-  },
-  featureText: {
+  quickTitle: {
     fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.5)',
-    lineHeight: 1.6,
-  },
-  subjectsSection: {
-    marginBottom: '80px',
-  },
-  sectionHeader: {
-    textAlign: 'center',
-    marginBottom: '40px',
-  },
-  sectionBadge: {
-    display: 'inline-block',
-    padding: '6px 14px',
-    background: 'rgba(255, 215, 0, 0.08)',
-    border: '1px solid rgba(255, 215, 0, 0.15)',
-    borderRadius: '50px',
-    fontSize: '12px',
     fontWeight: '600',
-    color: '#FFD700',
-    marginBottom: '15px',
+    color: 'rgba(255,255,255,0.8)',
+    margin: '0 0 12px 0',
   },
-  sectionTitle: {
-    fontSize: '36px',
-    fontWeight: '800',
-    margin: 0,
-  },
-  sectionSubtitle: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.4)',
-    maxWidth: '600px',
-    margin: '10px auto 0',
-    lineHeight: 1.8,
-  },
-  subjectsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '20px',
-  },
-  subjectsGridMobile: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
+  quickLink: {
+    display: 'flex',
+    alignItems: 'center',
     gap: '12px',
+    padding: '10px 12px',
+    color: 'rgba(255,255,255,0.6)',
+    textDecoration: 'none',
+    borderRadius: '8px',
+    transition: 'all 0.2s',
+    fontSize: '14px',
   },
-  subjectCard: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    padding: '25px 15px',
-    borderRadius: '20px',
-    border: '1px solid rgba(255, 255, 255, 0.03)',
-    textAlign: 'center',
-    transition: 'all 0.3s',
-  },
-  subjectIcon: {
-    fontSize: '48px',
-    display: 'block',
-    marginBottom: '12px',
-  },
-  subjectTitle: {
-    fontSize: '20px',
-    fontWeight: '700',
-    marginBottom: '6px',
-  },
-  subjectDesc: {
-    fontSize: '13px',
-    color: 'rgba(255, 255, 255, 0.3)',
-    marginBottom: '0',
-  },
-  supportSection: {
-    marginBottom: '60px',
-  },
-  supportCard: {
-    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 107, 0, 0.03))',
-    padding: '40px 20px',
-    borderRadius: '24px',
-    border: '1px solid rgba(255, 215, 0, 0.08)',
-    textAlign: 'center',
-  },
-  supportContent: {
-    maxWidth: '500px',
+  mainArea: {
+    padding: '25px',
+    maxWidth: '1300px',
     margin: '0 auto',
   },
-  supportTitle: {
-    fontSize: '28px',
-    fontWeight: '700',
-    marginBottom: '15px',
-  },
-  supportText: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.5)',
+  navBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '25px',
-    lineHeight: 1.8,
   },
-  supportButton: {
-    display: 'inline-block',
-    padding: '12px 32px',
-    background: 'rgba(255, 215, 0, 0.1)',
-    color: '#FFD700',
-    border: '1px solid rgba(255, 215, 0, 0.2)',
-    borderRadius: '50px',
-    textDecoration: 'none',
+  breadcrumb: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  breadcrumbSeparator: {
+    color: 'rgba(255,255,255,0.2)',
+  },
+  breadcrumbActive: {
+    color: '#60a5fa',
+    fontWeight: '600',
+  },
+  welcomeBanner: {
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15))',
+    borderRadius: '16px',
+    padding: '20px 25px',
+    color: 'white',
+    marginBottom: '25px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  welcomeBannerMobile: {
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15))',
+    borderRadius: '16px',
+    padding: '20px',
+    color: 'white',
+    marginBottom: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+    alignItems: 'center',
+    textAlign: 'center',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  welcomeTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    margin: '0 0 10px 0',
+  },
+  welcomeTitleMobile: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    margin: '0 0 5px 0',
+  },
+  welcomeText: {
+    fontSize: '16px',
+    opacity: 0.7,
+    margin: 0,
+  },
+  welcomeTextMobile: {
+    fontSize: '14px',
+    opacity: 0.7,
+    margin: 0,
+  },
+  userProgress: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+  },
+  categoriesBar: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '25px',
+    flexWrap: 'wrap',
+  },
+  categoriesBarMobile: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '20px',
+    overflowX: 'auto',
+    padding: '5px 0',
+    whiteSpace: 'nowrap',
+    WebkitOverflowScrolling: 'touch',
+  },
+  categoryButton: {
+    padding: '10px 20px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    borderRadius: '12px',
     fontSize: '15px',
     fontWeight: '600',
+    cursor: 'pointer',
     transition: 'all 0.3s',
   },
-  ctaSection: {
-    marginBottom: '40px',
+  coursesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: '20px',
+    animation: 'fadeIn 0.5s ease',
   },
-  ctaCard: {
-    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 107, 0, 0.05))',
-    padding: '50px 20px',
-    borderRadius: '30px',
-    border: '1px solid rgba(255, 215, 0, 0.05)',
-    textAlign: 'center',
+  coursesGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '15px',
+    animation: 'fadeIn 0.5s ease',
   },
-  ctaContent: {
-    maxWidth: '600px',
-    margin: '0 auto',
+  courseCard: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '16px',
+    padding: '20px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    transition: 'all 0.3s',
   },
-  ctaTitle: {
-    fontSize: '32px',
-    fontWeight: '800',
+  courseCardMobile: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '15px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    transition: 'all 0.3s',
+  },
+  courseHeader: {
+    display: 'flex',
+    gap: '15px',
     marginBottom: '15px',
   },
-  ctaText: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: '25px',
-  },
-  ctaButton: {
-    padding: '14px 32px',
-    background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-    color: '#0a0a14',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '16px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    boxShadow: '0 4px 25px rgba(255, 215, 0, 0.2)',
-    transition: 'all 0.3s',
-  },
-  footer: {
-    background: 'rgba(0, 0, 0, 0.3)',
-    padding: '40px 20px 20px',
-    borderTop: '1px solid rgba(255, 215, 0, 0.05)',
-    position: 'relative',
-    zIndex: 2,
-  },
-  footerContent: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
-  footerTop: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
-    gap: '40px',
-    marginBottom: '30px',
-  },
-  footerTopMobile: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '25px',
-    marginBottom: '25px',
-    textAlign: 'center',
-  },
-  footerInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  },
-  footerLogo: {
+  courseIcon: {
+    fontSize: '32px',
+    background: 'rgba(255,255,255,0.03)',
+    width: '50px',
+    height: '50px',
+    borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    justifyContent: 'center',
   },
-  footerLogoIcon: {
+  courseTitle: {
     fontSize: '18px',
+    fontWeight: '600',
+    color: 'white',
+    margin: '0 0 5px 0',
+  },
+  courseTitleMobile: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: 'white',
+    margin: '0 0 3px 0',
+  },
+  courseCategory: {
+    fontSize: '12px',
+    fontWeight: '600',
+    padding: '3px 10px',
+    borderRadius: '20px',
+    display: 'inline-block',
+  },
+  courseDescription: {
+    fontSize: '14px',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: '15px',
+    lineHeight: 1.6,
+  },
+  courseDescriptionMobile: {
+    fontSize: '13px',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: '12px',
+    lineHeight: 1.5,
+  },
+  progressContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '12px',
+  },
+  progressBar: {
+    flex: 1,
+    height: '6px',
+    background: 'rgba(255,255,255,0.05)',
+    borderRadius: '3px',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    background: 'linear-gradient(90deg, #FFD700, #FF6B00)',
+    borderRadius: '3px',
+    transition: 'width 0.5s ease',
+  },
+  progressText: {
+    fontSize: '12px',
     color: '#FFD700',
     fontWeight: 'bold',
+    minWidth: '35px',
   },
-  footerTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
-    margin: 0,
+  courseMeta: {
+    display: 'flex',
+    gap: '15px',
+    fontSize: '13px',
+    color: 'rgba(255,255,255,0.3)',
+    marginBottom: '15px',
+  },
+  courseFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    padding: '6px 12px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600',
+  },
+  courseButton: {
+    padding: '8px 16px',
+    background: 'linear-gradient(135deg, #10b981, #059669)',
+    color: 'white',
+    textDecoration: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    transition: 'all 0.3s',
+  },
+  enrollButton: {
+    padding: '8px 16px',
+    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+  },
+  loadingCourses: {
+    textAlign: 'center',
+    padding: '50px',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '3px solid rgba(255,255,255,0.05)',
+    borderTopColor: '#FFD700',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    margin: '0 auto 20px',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '60px 20px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '16px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  emptyIcon: {
+    fontSize: '48px',
+    marginBottom: '20px',
+  },
+  emptyTitle: {
+    fontSize: '20px',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: '10px',
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.3)',
+  },
+  oldFooter: {
+    background: 'rgba(0,0,0,0.3)',
+    color: 'white',
+    padding: '30px 20px',
+    marginTop: '40px',
+    borderTop: '1px solid rgba(255,255,255,0.05)',
+  },
+  footerContent: {
+    maxWidth: '1600px',
+    margin: '0 auto',
+    textAlign: 'center',
+  },
+  footerContentMobile: {
+    maxWidth: '1600px',
+    margin: '0 auto',
+    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
   },
   footerText: {
+    color: 'rgba(255,255,255,0.3)',
+    marginBottom: '15px',
     fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.4)',
-    lineHeight: 1.6,
-    maxWidth: '400px',
   },
   footerLinks: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    justifyContent: 'center',
+    gap: '20px',
+    marginBottom: '20px',
+    flexWrap: 'wrap',
   },
-  footerLinksTitle: {
-    fontSize: '16px',
-    fontWeight: '600',
-    marginBottom: '5px',
+  footerLinksMobile: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginBottom: '15px',
   },
   footerLink: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255,255,255,0.2)',
     textDecoration: 'none',
-    fontSize: '14px',
-    transition: 'all 0.3s',
+    fontSize: '13px',
+    cursor: 'default',
   },
-  footerBottom: {
-    borderTop: '1px solid rgba(255, 255, 255, 0.03)',
-    paddingTop: '20px',
-    textAlign: 'center',
+  footerSupport: {
+    marginTop: '20px',
   },
-  copyright: {
+  supportInfo: {
+    color: 'rgba(255,255,255,0.2)',
     fontSize: '12px',
-    color: 'rgba(255, 255, 255, 0.2)',
+    marginTop: '8px',
+  },
+  footerSupportLink: {
+    color: '#60a5fa',
+    textDecoration: 'none',
+    margin: '0 5px',
+  },
+  floatingButtons: {
+    position: 'fixed',
+    bottom: '20px',
+    left: '20px',
+    zIndex: 99999,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+  },
+  floatingButtonsMobile: {
+    position: 'fixed',
+    bottom: '15px',
+    left: '15px',
+    zIndex: 99999,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  floatingButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '60px',
+    height: '60px',
+    color: 'white',
+    borderRadius: '50%',
+    textDecoration: 'none',
+    boxShadow: '0 8px 20px rgba(16, 185, 129, 0.3)',
+    fontSize: '26px',
+    border: '2px solid rgba(255,255,255,0.1)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
   },
 };
+
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+}
