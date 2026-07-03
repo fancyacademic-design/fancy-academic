@@ -12,6 +12,9 @@ export default function BotPage() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
+  
+  // ✅ التحقق من حجم الشاشة
+  const [isMobile, setIsMobile] = useState(false);
 
   // ✅ التحقق من تسجيل الدخول
   useEffect(() => {
@@ -31,6 +34,14 @@ export default function BotPage() {
       }
     };
     checkAuth();
+    
+    // ✅ التحقق من حجم الشاشة
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -271,39 +282,37 @@ export default function BotPage() {
                 <span style={styles.logoIcon}>🤖</span>
               </div>
               <div style={styles.logoText}>
-                {/* ✅ ✅ تم تغيير اسم البوت */}
-                <h1 style={styles.botName}>Fancy Academic Ai</h1>
+                <h1 style={isMobile ? {...styles.botName, fontSize: '18px'} : styles.botName}>Fancy Academic Ai</h1>
                 <div style={styles.statusWrapper}>
                   <span style={styles.statusDot}></span>
-                  <span style={styles.statusText}>متصل</span>
+                  <span style={isMobile ? {...styles.statusText, fontSize: '11px'} : styles.statusText}>متصل</span>
                 </div>
               </div>
             </div>
 
             {studentName && (
-              <div style={styles.userBadge}>
-                <span style={styles.userIcon}>👤</span>
-                <span style={styles.userName}>{studentName}</span>
+              <div style={isMobile ? {...styles.userBadge, padding: '6px 12px'} : styles.userBadge}>
+                <span style={isMobile ? {...styles.userIcon, fontSize: '13px'} : styles.userIcon}>👤</span>
+                <span style={isMobile ? {...styles.userName, fontSize: '12px'} : styles.userName}>{studentName}</span>
                 {isBlocked && (
-                  <span style={styles.blockedBadge}>محظور</span>
+                  <span style={isMobile ? {...styles.blockedBadge, fontSize: '9px', padding: '2px 6px'} : styles.blockedBadge}>محظور</span>
                 )}
               </div>
             )}
           </div>
 
-          {/* ✅ ✅ تم إزالة المواد بالكامل */}
-          <div style={styles.specialties}>
-            <div style={styles.specialtyItem}>
-              <span style={styles.specialtyIcon}>🤖</span>
-              <span>مساعد تعليمي ذكي</span>
+          <div style={isMobile ? styles.specialtiesMobile : styles.specialties}>
+            <div style={isMobile ? styles.specialtyItemMobile : styles.specialtyItem}>
+              <span style={isMobile ? {...styles.specialtyIcon, fontSize: '12px'} : styles.specialtyIcon}>🤖</span>
+              <span style={isMobile ? {fontSize: '10px'} : {}}>مساعد تعليمي ذكي</span>
             </div>
-            <div style={styles.specialtyItem}>
-              <span style={styles.specialtyIcon}>📚</span>
-              <span>جميع المراحل الدراسية</span>
+            <div style={isMobile ? styles.specialtyItemMobile : styles.specialtyItem}>
+              <span style={isMobile ? {...styles.specialtyIcon, fontSize: '12px'} : styles.specialtyIcon}>📚</span>
+              <span style={isMobile ? {fontSize: '10px'} : {}}>جميع المراحل</span>
             </div>
-            <div style={styles.specialtyItem}>
-              <span style={styles.specialtyIcon}>💡</span>
-              <span>شرح مبسط</span>
+            <div style={isMobile ? styles.specialtyItemMobile : styles.specialtyItem}>
+              <span style={isMobile ? {...styles.specialtyIcon, fontSize: '12px'} : styles.specialtyIcon}>💡</span>
+              <span style={isMobile ? {fontSize: '10px'} : {}}>شرح مبسط</span>
             </div>
           </div>
         </div>
@@ -318,21 +327,24 @@ export default function BotPage() {
               }}
             >
               {msg.role === 'bot' && (
-                <div style={styles.botAvatar}>
+                <div style={isMobile ? {...styles.botAvatar, width: '30px', height: '30px', fontSize: '14px'} : styles.botAvatar}>
                   <span>🤖</span>
                 </div>
               )}
               <div style={{
                 ...styles.messageBubble,
-                ...(msg.role === 'user' ? styles.userBubble : styles.botBubble)
+                ...(msg.role === 'user' ? styles.userBubble : styles.botBubble),
+                maxWidth: isMobile ? '80%' : '65%',
+                padding: isMobile ? '10px 14px' : '12px 18px',
               }}>
-                <p style={styles.messageText} dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }} />
-                <span style={styles.messageTime}>
+                <p style={isMobile ? {...styles.messageText, fontSize: '13px'} : styles.messageText} 
+                   dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }} />
+                <span style={isMobile ? {...styles.messageTime, fontSize: '9px'} : styles.messageTime}>
                   {new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
               {msg.role === 'user' && (
-                <div style={styles.userAvatar}>
+                <div style={isMobile ? {...styles.userAvatar, width: '30px', height: '30px', fontSize: '14px'} : styles.userAvatar}>
                   <span>👤</span>
                 </div>
               )}
@@ -341,18 +353,19 @@ export default function BotPage() {
 
           {streamingMessage && (
             <div style={styles.messageRow}>
-              <div style={styles.botAvatar}>
+              <div style={isMobile ? {...styles.botAvatar, width: '30px', height: '30px', fontSize: '14px'} : styles.botAvatar}>
                 <span>🤖</span>
               </div>
-              <div style={{...styles.messageBubble, ...styles.botBubble}}>
-                <p style={styles.messageText} dangerouslySetInnerHTML={{ __html: streamingMessage.replace(/\n/g, '<br/>') }} />
+              <div style={{...styles.messageBubble, ...styles.botBubble, padding: isMobile ? '10px 14px' : '12px 18px'}}>
+                <p style={isMobile ? {...styles.messageText, fontSize: '13px'} : styles.messageText} 
+                   dangerouslySetInnerHTML={{ __html: streamingMessage.replace(/\n/g, '<br/>') }} />
               </div>
             </div>
           )}
 
           {loading && !streamingMessage && (
             <div style={styles.typingContainer}>
-              <div style={styles.typingBubble}>
+              <div style={isMobile ? {...styles.typingBubble, padding: '10px 14px'} : styles.typingBubble}>
                 <span style={styles.typingDot}></span>
                 <span style={styles.typingDot}></span>
                 <span style={styles.typingDot}></span>
@@ -362,22 +375,22 @@ export default function BotPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div style={styles.inputContainer}>
-          <div style={styles.inputWrapper}>
+        <div style={isMobile ? styles.inputContainerMobile : styles.inputContainer}>
+          <div style={isMobile ? styles.inputWrapperMobile : styles.inputWrapper}>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={isBlocked ? "🚫 حسابك محظور..." : "اكتب سؤالك هنا..."}
-              style={styles.input}
+              style={isMobile ? styles.inputMobile : styles.input}
               disabled={loading || isBlocked}
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || loading || isBlocked}
               style={{
-                ...styles.sendButton,
+                ...(isMobile ? styles.sendButtonMobile : styles.sendButton),
                 ...((!input.trim() || loading || isBlocked) ? styles.sendButtonDisabled : styles.sendButtonActive)
               }}
             >
@@ -585,10 +598,14 @@ const styles = {
     borderRadius: '20px',
     color: 'white',
   },
-  // ✅ ✅ تم تعديل الـ specialties
   specialties: {
     display: 'flex',
     gap: '8px',
+    flexWrap: 'wrap',
+  },
+  specialtiesMobile: {
+    display: 'flex',
+    gap: '5px',
     flexWrap: 'wrap',
   },
   specialtyItem: {
@@ -599,6 +616,17 @@ const styles = {
     alignItems: 'center',
     gap: '6px',
     fontSize: '12px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    transition: 'all 0.2s',
+  },
+  specialtyItemMobile: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    padding: '4px 10px',
+    borderRadius: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '10px',
     border: '1px solid rgba(255, 255, 255, 0.2)',
     transition: 'all 0.2s',
   },
@@ -703,6 +731,7 @@ const styles = {
     display: 'inline-block',
     animation: 'typing 1.4s infinite ease-in-out',
   },
+  // ✅ أنماط الإدخال للكمبيوتر
   inputContainer: {
     padding: '15px 20px',
     background: 'white',
@@ -722,6 +751,27 @@ const styles = {
     transition: 'all 0.3s',
     fontFamily: '"Cairo", "Segoe UI", Tahoma, sans-serif',
   },
+  // ✅ أنماط الإدخال للموبايل
+  inputContainerMobile: {
+    padding: '10px 12px',
+    background: 'white',
+    borderTop: '1px solid #e2e8f0',
+  },
+  inputWrapperMobile: {
+    display: 'flex',
+    gap: '8px',
+  },
+  inputMobile: {
+    flex: 1,
+    padding: '12px 14px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '25px',
+    fontSize: '14px',
+    outline: 'none',
+    transition: 'all 0.3s',
+    fontFamily: '"Cairo", "Segoe UI", Tahoma, sans-serif',
+    minWidth: '0',
+  },
   sendButton: {
     padding: '0 25px',
     border: 'none',
@@ -731,6 +781,19 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.3s',
     minWidth: '90px',
+  },
+  // ✅ ✅ زر الإرسال للموبايل - واضح وكامل
+  sendButtonMobile: {
+    padding: '12px 16px',
+    border: 'none',
+    borderRadius: '25px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+    minWidth: '70px',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   sendButtonActive: {
     background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
