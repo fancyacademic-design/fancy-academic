@@ -655,7 +655,7 @@ export default function PlatformPage() {
               ☰
             </button>
             <div>
-              <h1 style={isMobile ? {...styles.logo, fontSize: '18px'} : styles.logo}>✨ Fancy Academic</h1>
+              <h1 style={isMobile ? {...styles.logo, fontSize: '18px'} : styles.logo}>✨ Fancy Academy</h1>
               <p style={isMobile ? {...styles.logoSub, fontSize: '10px'} : styles.logoSub}>منصة التعليم الذكية</p>
             </div>
           </div>
@@ -1143,7 +1143,7 @@ export default function PlatformPage() {
       <footer style={styles.oldFooter}>
         <div style={isMobile ? styles.footerContentMobile : styles.footerContent}>
           <p style={isMobile ? {...styles.footerText, fontSize: '12px'} : styles.footerText}>
-            © 2026 Fancy Academic - منصة التعليم الذكية
+            © 2026 Fancy Academy - منصة التعليم الذكية
           </p>
           <div style={isMobile ? styles.footerLinksMobile : styles.footerLinks}>
             <span style={isMobile ? {...styles.footerLink, fontSize: '11px'} : styles.footerLink}>سياسة الخصوصية</span>
