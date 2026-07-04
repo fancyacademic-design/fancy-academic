@@ -8,7 +8,8 @@ import {
   doc, getDoc, serverTimestamp, query, where, orderBy 
 } from 'firebase/firestore';
 
-export default function TeacherExamsPage() {
+// ✅ ✅ الفصل بين المحتوى والصفحة الرئيسية (لحل مشكلة Suspense)
+function TeacherExamsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const subjectIdFromUrl = searchParams.get('subjectId');
@@ -372,7 +373,6 @@ export default function TeacherExamsPage() {
     setShowQuestionForm(true);
   };
 
-  // ✅ حفظ الامتحان (من غير type)
   const saveExam = async () => {
     console.log("✅✅✅ 1. تم الضغط على زر حفظ الامتحان");
     
@@ -408,7 +408,7 @@ export default function TeacherExamsPage() {
       const examData = {
         title: examForm.title,
         description: examForm.description || '',
-        type: 'exam', // ✅ ثابت امتحان فقط
+        type: 'exam',
         courseId: examForm.courseId || '',
         subjectId: finalSubjectId,
         lessonId: examForm.lessonId || '',
@@ -1106,11 +1106,43 @@ export default function TeacherExamsPage() {
   );
 }
 
+// ✅ ✅ الصفحة الرئيسية مع Suspense
+export default function ExamsPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0a0a14, #1a1a2e)',
+        color: 'white',
+        fontFamily: '"Cairo", "Segoe UI", sans-serif',
+      }}>
+        <div style={{textAlign: 'center'}}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(255,215,0,0.1)',
+            borderTopColor: '#FFD700',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 15px',
+          }} />
+          <p>جاري تحميل الامتحانات...</p>
+        </div>
+      </div>
+    }>
+      <TeacherExamsContent />
+    </Suspense>
+  );
+}
+
 // ====================== STYLES ======================
 const styles: any = {
   container: {
     minHeight: '100vh',
-    background: '#0a0a14',
+    background: 'linear-gradient(135deg, #0a0a14, #1a1a2e)',
     color: 'white',
     fontFamily: '"Cairo", "Segoe UI", Tahoma, sans-serif',
     direction: 'rtl' as const,
