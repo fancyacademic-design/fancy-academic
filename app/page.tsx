@@ -167,7 +167,7 @@ export default function Home() {
             <div style={styles.subjectCard}>
               <div style={styles.subjectIcon}>📐</div>
               <h3 style={isMobile ? {...styles.subjectTitle, fontSize: '14px'} : styles.subjectTitle}>الرياضيات</h3>
-              <p style={isMobile ? {...styles.subjectDesc, fontSize: '10px'} : styles.subjectDesc}>قريباً</p>
+              <p style={isMobile ? {...styles.subjectDesc, fontSize: '10px'} : styles.subjectDesc}>متاحة الان</p>
             </div>
 
             <div style={styles.subjectCard}>
