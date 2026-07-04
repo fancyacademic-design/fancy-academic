@@ -95,7 +95,7 @@ export default function BotPage() {
       {
         id: 1,
         role: 'bot',
-        content: '🤖 **مرحباً! أنا Fancy Academic Ai**\n\n📚 مساعدك الذكي في المنصة التعليمية\n\n📝 اكتب سؤالك وأنا هجاوبك ✅'
+        content: '🤖 **مرحباً! أنا Fancy Academy Ai**\n\n📚 مساعدك الذكي في المنصة التعليمية\n\n📝 اكتب سؤالك وأنا هجاوبك ✅'
       }
     ]);
   }, []);
@@ -282,7 +282,7 @@ export default function BotPage() {
                 <span style={styles.logoIcon}>🤖</span>
               </div>
               <div style={styles.logoText}>
-                <h1 style={isMobile ? {...styles.botName, fontSize: '18px'} : styles.botName}>Fancy Academic Ai</h1>
+                <h1 style={isMobile ? {...styles.botName, fontSize: '18px'} : styles.botName}>Fancy Academy Ai</h1>
                 <div style={styles.statusWrapper}>
                   <span style={styles.statusDot}></span>
                   <span style={isMobile ? {...styles.statusText, fontSize: '11px'} : styles.statusText}>متصل</span>
