@@ -64,7 +64,7 @@ export default function AdminPage() {
         <div style={styles.loginCard}>
           <div style={styles.loginHeader}>
             <h1 style={styles.loginTitle}>👨‍💼 دخول الأدمن</h1>
-            <p style={styles.loginSubtitle}>منصة Fancy Academic</p>
+            <p style={styles.loginSubtitle}>منصة Fancy Academy</p>
           </div>
 
           <form onSubmit={handleLogin} style={styles.loginForm}>
@@ -138,7 +138,7 @@ export default function AdminPage() {
         <div style={styles.headerTop}>
           <div>
             <h1 style={styles.title}>👨‍💼 لوحة تحكم الأدمن</h1>
-            <p style={styles.subtitle}>Fancy Academic</p>
+            <p style={styles.subtitle}>Fancy Academy</p>
           </div>
           <button onClick={handleLogout} style={styles.logoutButton}>
             🚪 تسجيل الخروج
