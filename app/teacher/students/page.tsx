@@ -37,6 +37,11 @@ export default function TeacherStudents() {
   const [notificationType, setNotificationType] = useState('info');
   const [sendingNotification, setSendingNotification] = useState(false);
 
+  // ✅ ✅ حالة عرض تفاصيل تقدم الطالب
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [studentProgress, setStudentProgress] = useState<any>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+
   useEffect(() => {
     const userData = localStorage.getItem('currentUser');
     console.log('📦 userData في teacher/students:', userData);
@@ -50,7 +55,6 @@ export default function TeacherStudents() {
       const parsed = JSON.parse(userData);
       console.log('👤 المستخدم:', parsed);
 
-      // ✅ تعطيل التحقق من الصلاحية مؤقتاً
       parsed.role = 'teacher';
       parsed.isApproved = true;
 
@@ -66,13 +70,12 @@ export default function TeacherStudents() {
     try {
       console.log('🔍 جلب مواد المدرس:', teacherId);
       
-      // ✅ جلب مواد المدرس
       const subjectsQuery = query(
         collection(db, 'subjects'),
         where('teacherId', '==', teacherId)
       );
       const subjectsSnapshot = await getDocs(subjectsQuery);
-      const subjectsData = subjectsSnapshot.docs.map(docSnap => ({  // ✅ غيرنا اسم المتغير لـ docSnap
+      const subjectsData = subjectsSnapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data(),
       }));
@@ -87,7 +90,6 @@ export default function TeacherStudents() {
         return;
       }
 
-      // ✅ جلب الطلاب المسجلين في مواد المدرس
       const studentIds = new Set<string>();
       const studentsList: any[] = [];
 
@@ -99,14 +101,13 @@ export default function TeacherStudents() {
           where('subjectId', '==', subject.id)
         );
         const enrolledSnapshot = await getDocs(enrolledQuery);
-        const enrolledData = enrolledSnapshot.docs.map(docSnap => docSnap.data());  // ✅ غيرنا اسم المتغير
+        const enrolledData = enrolledSnapshot.docs.map(docSnap => docSnap.data());
         console.log(`👨‍🎓 طلاب ${subject.name}:`, enrolledData);
         
         for (const data of enrolledData) {
           if (!studentIds.has(data.studentId)) {
             studentIds.add(data.studentId);
             
-            // ✅ جلب بيانات الطالب
             const userRef = doc(db, 'users', data.studentId);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists()) {
@@ -120,12 +121,15 @@ export default function TeacherStudents() {
                 subjects: [subject.name],
                 subjectIds: [subject.id],
                 enrolledAt: data.enrolledAt,
+                xp: userData.xp || 0,
+                level: userData.level || 1,
+                gems: userData.gems || 0,
+                streak: userData.streak || 0,
               });
             } else {
               console.log(`⚠️ المستخدم ${data.studentId} غير موجود`);
             }
           } else {
-            // ✅ إضافة المادة للطالب الموجود
             const existing = studentsList.find(s => s.id === data.studentId);
             if (existing && !existing.subjectIds.includes(subject.id)) {
               existing.subjects.push(subject.name);
@@ -150,19 +154,203 @@ export default function TeacherStudents() {
     }
   };
 
+  // ✅ ✅ ✅ الدروس المكتملة = الامتحانات المكتملة (نفس الرقم)
+  const loadStudentProgress = async (studentId: string, studentName: string) => {
+    try {
+      setLoadingProgress(true);
+      setShowProgressModal(true);
+      
+      console.log('🔍 ===== بدء جلب تقدم الطالب =====');
+      console.log(`👤 الطالب: ${studentName} (${studentId})`);
+      
+      // ✅ 1. جلب المواد المسجل فيها الطالب
+      const enrolledSubjectsQuery = query(
+        collection(db, 'student_subjects'),
+        where('studentId', '==', studentId)
+      );
+      const enrolledSubjectsSnap = await getDocs(enrolledSubjectsQuery);
+      const enrolledSubjects = enrolledSubjectsSnap.docs.map(docSnap => ({
+        id: docSnap.id,
+        subjectId: docSnap.data().subjectId,
+        progress: docSnap.data().progress || 0,
+      }));
+      
+      console.log(`📚 المواد المسجل فيها الطالب (كلها):`, enrolledSubjects);
+      
+      // ✅ ✅ فلترة المواد: بس اللي المدرس عنده
+      const teacherSubjectIds = subjects.map(s => s.id);
+      console.log(`🆔 مواد المدرس IDs:`, teacherSubjectIds);
+      
+      const filteredEnrolledSubjects = enrolledSubjects.filter(s => 
+        teacherSubjectIds.includes(s.subjectId)
+      );
+      
+      console.log(`📚 المواد المسجل فيها الطالب (بعد الفلترة):`, filteredEnrolledSubjects);
+      
+      if (filteredEnrolledSubjects.length === 0) {
+        console.log('⚠️ الطالب غير مسجل في أي مادة من مواد المدرس');
+        setStudentProgress({
+          studentId: studentId,
+          studentName: studentName,
+          subjects: [],
+          overallProgress: 0,
+          totalExams: 0,
+          completedExams: 0,
+          totalLessons: 0,
+          completedLessons: 0,
+          openedCourses: 0,
+          xp: 0,
+          level: 1,
+          gems: 0,
+          streak: 0,
+          grade: '',
+          message: 'الطالب غير مسجل في أي مادة من موادك',
+        });
+        setLoadingProgress(false);
+        return;
+      }
+      
+      // ✅ 2. جلب جميع الامتحانات
+      const examsSnapshot = await getDocs(collection(db, 'exams'));
+      const allExams = examsSnapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+      console.log(`📝 عدد الامتحانات الكلي:`, allExams.length);
+      
+      // ✅ 3. جلب نتائج الطالب (الامتحانات المكتملة)
+      const resultsQuery = query(
+        collection(db, 'exam_results'),
+        where('studentId', '==', studentId)
+      );
+      const resultsSnap = await getDocs(resultsQuery);
+      const studentResults = resultsSnap.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+      const completedExamIds = studentResults.map(r => r.examId);
+      console.log(`📊 عدد الامتحانات المكتملة:`, completedExamIds.length);
+      
+      // ✅ 4. جلب جميع الدروس في مواد المدرس
+      const coursesSnapshot = await getDocs(collection(db, 'courses'));
+      const allCourses = coursesSnapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+      
+      // ✅ 5. جلب بيانات المواد (الأسماء)
+      const subjectsSnapshot = await getDocs(collection(db, 'subjects'));
+      const allSubjects = subjectsSnapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+      
+      // ✅ 6. جلب الكورسات المفتوحة للطالب
+      const openedCoursesQuery = query(
+        collection(db, 'student_courses'),
+        where('studentId', '==', studentId),
+        where('isActive', '==', true)
+      );
+      const openedCoursesSnap = await getDocs(openedCoursesQuery);
+      const openedCourseIds = openedCoursesSnap.docs.map(docSnap => docSnap.data().courseId);
+      console.log(`🎓 عدد الكورسات المفتوحة:`, openedCourseIds.length);
+      
+      // ✅ 7. ✅ ✅ حساب التقدم لكل مادة
+      const subjectsProgress = await Promise.all(filteredEnrolledSubjects.map(async (enrolled) => {
+        const subject = allSubjects.find(s => s.id === enrolled.subjectId);
+        const subjectName = subject?.name || 'مادة غير معروفة';
+        
+        console.log(`📖 حساب تقدم المادة: ${subjectName}`);
+        
+        // ✅ جلب جميع الامتحانات في هذه المادة
+        const subjectExams = allExams.filter(e => e.subjectId === enrolled.subjectId);
+        console.log(`   📝 عدد الامتحانات في المادة:`, subjectExams.length);
+        
+        const totalExams = subjectExams.length;
+        let completedExamsCount = 0;
+        
+        subjectExams.forEach(exam => {
+          if (completedExamIds.includes(exam.id)) {
+            completedExamsCount++;
+          }
+        });
+        
+        const progressPercent = totalExams > 0 
+          ? Math.round((completedExamsCount / totalExams) * 100) 
+          : 0;
+        
+        console.log(`   📊 تقدم ${subjectName}: ${progressPercent}% (${completedExamsCount}/${totalExams} امتحان)`);
+        
+        // ✅ ✅ ✅ الدروس المكتملة = الامتحانات المكتملة (نفس الرقم)
+        const completedLessonsCount = completedExamsCount;
+        const totalLessons = totalExams;
+        
+        return {
+          subjectId: enrolled.subjectId,
+          subjectName: subjectName,
+          progress: progressPercent,
+          totalExams: totalExams,
+          completedExams: completedExamsCount,
+          totalLessons: totalLessons,
+          completedLessons: completedLessonsCount,
+          isEnrolled: true,
+        };
+      }));
+      
+      // ✅ 8. حساب الإحصائيات العامة
+      const totalExamsAll = subjectsProgress.reduce((sum, s) => sum + s.totalExams, 0);
+      const completedExamsAll = subjectsProgress.reduce((sum, s) => sum + s.completedExams, 0);
+      const totalLessonsAll = subjectsProgress.reduce((sum, s) => sum + s.totalLessons, 0);
+      const completedLessonsAll = subjectsProgress.reduce((sum, s) => sum + s.completedLessons, 0);
+      
+      const overallProgress = totalExamsAll > 0 
+        ? Math.round((completedExamsAll / totalExamsAll) * 100) 
+        : 0;
+      
+      // ✅ 9. جلب بيانات المستخدم
+      const userRef = doc(db, 'users', studentId);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      
+      const progressData = {
+        studentId: studentId,
+        studentName: studentName,
+        subjects: subjectsProgress,
+        overallProgress: overallProgress,
+        totalExams: totalExamsAll,
+        completedExams: completedExamsAll,
+        totalLessons: totalLessonsAll,
+        completedLessons: completedLessonsAll,
+        openedCourses: openedCourseIds.length,
+        xp: userData.xp || 0,
+        level: userData.level || 1,
+        gems: userData.gems || 0,
+        streak: userData.streak || 0,
+        grade: userData.grade || '',
+      };
+      
+      setStudentProgress(progressData);
+      console.log('📊 تقدم الطالب النهائي:', progressData);
+      
+    } catch (error) {
+      console.error('❌ خطأ في جلب تقدم الطالب:', error);
+      setMessage('❌ حدث خطأ في جلب تقدم الطالب');
+    } finally {
+      setLoadingProgress(false);
+    }
+  };
+
   // ✅ جلب الكورسات المفتوحة للطالب في مادة معينة
   const loadStudentCourses = async (studentId: string, subjectId: string) => {
     try {
       console.log(`🔍 جلب كورسات المادة ${subjectId} للطالب ${studentId}`);
       
-      // ✅ جلب بيانات الطالب (لمعرفة مرحلته)
       const userRef = doc(db, 'users', studentId);
       const userDoc = await getDoc(userRef);
       const studentGrade = userDoc.exists() ? userDoc.data().grade : '1-prep';
       
       console.log(`🎯 مرحلة الطالب: ${studentGrade}`);
 
-      // ✅ جلب الكورسات (مع فلترة حسب المرحلة)
       const coursesQuery = query(
         collection(db, 'courses'),
         where('subjectId', '==', subjectId),
@@ -170,25 +358,23 @@ export default function TeacherStudents() {
         where('grade', '==', studentGrade)
       );
       const coursesSnapshot = await getDocs(coursesQuery);
-      const coursesData = coursesSnapshot.docs.map(docSnap => ({  // ✅ غيرنا اسم المتغير
+      const coursesData = coursesSnapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data(),
       }));
       
-      // ✅ ترتيب في الكود
       coursesData.sort((a, b) => (a.order || 0) - (b.order || 0));
       
       console.log('📚 الكورسات المتاحة للطالب:', coursesData);
       setCourses(coursesData);
 
-      // ✅ جلب الكورسات المفتوحة للطالب
       const openedQuery = query(
         collection(db, 'student_courses'),
         where('studentId', '==', studentId),
         where('isActive', '==', true)
       );
       const openedSnapshot = await getDocs(openedQuery);
-      const openedIds = openedSnapshot.docs.map(docSnap => docSnap.data().courseId);  // ✅ غيرنا اسم المتغير
+      const openedIds = openedSnapshot.docs.map(docSnap => docSnap.data().courseId);
       console.log('✅ الكورسات المفتوحة:', openedIds);
       setOpenedCourses(openedIds);
 
@@ -211,7 +397,7 @@ export default function TeacherStudents() {
           where('courseId', '==', courseId)
         );
         const snapshot = await getDocs(q);
-        for (const docSnap of snapshot.docs) {  // ✅ غيرنا اسم المتغير
+        for (const docSnap of snapshot.docs) {
           await deleteDoc(docSnap.ref);
         }
         setOpenedCourses(openedCourses.filter(id => id !== courseId));
@@ -272,7 +458,7 @@ export default function TeacherStudents() {
             where('courseId', '==', course.id)
           );
           const snapshot = await getDocs(q);
-          for (const docSnap of snapshot.docs) {  // ✅ غيرنا اسم المتغير
+          for (const docSnap of snapshot.docs) {
             await deleteDoc(docSnap.ref);
           }
         }
@@ -297,7 +483,6 @@ export default function TeacherStudents() {
     setMessage('');
 
     try {
-      // ✅ جلب الطلاب المسجلين في المادة
       const enrolledQuery = query(
         collection(db, 'student_subjects'),
         where('subjectId', '==', selectedSubject.id)
@@ -306,11 +491,10 @@ export default function TeacherStudents() {
       
       let sentCount = 0;
       
-      for (const docSnap of enrolledSnapshot.docs) {  // ✅ غيرنا اسم المتغير
+      for (const docSnap of enrolledSnapshot.docs) {
         const data = docSnap.data();
         const studentId = data.studentId;
         
-        // ✅ إرسال إشعار لكل طالب
         await addDoc(collection(db, 'notifications'), {
           title: notificationTitle.trim(),
           body: notificationBody.trim(),
@@ -410,7 +594,7 @@ export default function TeacherStudents() {
                   <div style={styles.studentInfo}>
                     <h3 style={styles.studentName}>{student.name}</h3>
                     <span style={styles.studentPhone}>📱 {student.phone}</span>
-                    <span style={styles.studentGrade}>🎯 {student.grade}</span>
+                    <span style={styles.studentGrade}>🎯 {getGradeLabel(student.grade)}</span>
                   </div>
                 </div>
 
@@ -435,7 +619,14 @@ export default function TeacherStudents() {
                     🎓 فتح الكورسات
                   </button>
                   
-                  {/* ✅ زر إرسال إشعارات للمادة */}
+                  {/* ✅ ✅ زر تفاصيل التقدم */}
+                  <button
+                    onClick={() => loadStudentProgress(student.id, student.name)}
+                    style={styles.progressBtn}
+                  >
+                    📊 تفاصيل التقدم
+                  </button>
+                  
                   <button
                     onClick={() => {
                       const subject = subjects.find(s => student.subjectIds.includes(s.id));
@@ -460,7 +651,7 @@ export default function TeacherStudents() {
                 <div>
                   <h2 style={styles.modalTitle}>🎓 كورسات {selectedStudent.name}</h2>
                   <p style={styles.modalSub}>
-                    {selectedStudent.subjects.join(' - ')} | 🎯 {selectedStudent.grade}
+                    {selectedStudent.subjects.join(' - ')} | 🎯 {getGradeLabel(selectedStudent.grade)}
                   </p>
                 </div>
                 <button
@@ -530,6 +721,95 @@ export default function TeacherStudents() {
                     );
                   })
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ ✅ مودال تفاصيل تقدم الطالب */}
+        {showProgressModal && studentProgress && (
+          <div style={styles.modal}>
+            <div style={styles.modalContent}>
+              <div style={styles.modalHeader}>
+                <div>
+                  <h2 style={styles.modalTitle}>📊 تقدم {studentProgress.studentName}</h2>
+                  <p style={styles.modalSub}>
+                    🎯 {getGradeLabel(studentProgress.grade)} • ⭐ {studentProgress.xp} نقطة • 🎯 المستوى {studentProgress.level}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowProgressModal(false);
+                    setStudentProgress(null);
+                  }}
+                  style={styles.closeModal}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* ✅ الإحصائيات العامة */}
+              <div style={styles.progressStats}>
+                <div style={styles.progressStatCard}>
+                  <span style={styles.progressStatNumber}>{studentProgress.overallProgress}%</span>
+                  <span style={styles.progressStatLabel}>التقدم الإجمالي</span>
+                </div>
+                <div style={styles.progressStatCard}>
+                  <span style={styles.progressStatNumber}>{studentProgress.completedExams}/{studentProgress.totalExams}</span>
+                  <span style={styles.progressStatLabel}>امتحانات مكتملة</span>
+                </div>
+                <div style={styles.progressStatCard}>
+                  <span style={styles.progressStatNumber}>{studentProgress.completedLessons}/{studentProgress.totalLessons}</span>
+                  <span style={styles.progressStatLabel}>دروس مكتملة</span>
+                </div>
+                <div style={styles.progressStatCard}>
+                  <span style={styles.progressStatNumber}>{studentProgress.openedCourses}</span>
+                  <span style={styles.progressStatLabel}>كورسات مفتوحة</span>
+                </div>
+              </div>
+
+              {/* ✅ التقدم في كل مادة */}
+              <h3 style={styles.progressSubTitle}>📚 التقدم في المواد</h3>
+              <div style={styles.progressSubjectsList}>
+                {studentProgress.subjects.length === 0 ? (
+                  <p style={styles.noCourses}>لا توجد مواد مسجل فيها الطالب</p>
+                ) : (
+                  studentProgress.subjects.map((subject: any) => (
+                    <div key={subject.subjectId} style={styles.progressSubjectItem}>
+                      <div style={styles.progressSubjectHeader}>
+                        <span style={styles.progressSubjectName}>{subject.subjectName}</span>
+                        <span style={styles.progressSubjectPercent}>{subject.progress}%</span>
+                      </div>
+                      <div style={styles.progressSubjectBar}>
+                        <div style={{ ...styles.progressSubjectFill, width: `${subject.progress}%` }} />
+                      </div>
+                      <div style={styles.progressSubjectDetails}>
+                        <span>📝 {subject.completedExams}/{subject.totalExams} امتحان</span>
+                        <span>📖 {subject.completedLessons}/{subject.totalLessons} درس</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* ✅ النقاط والإحصائيات */}
+              <div style={styles.progressPoints}>
+                <div style={styles.progressPointItem}>
+                  <span>⭐</span>
+                  <span>{studentProgress.xp} نقطة خبرة</span>
+                </div>
+                <div style={styles.progressPointItem}>
+                  <span>🎯</span>
+                  <span>المستوى {studentProgress.level}</span>
+                </div>
+                <div style={styles.progressPointItem}>
+                  <span>💎</span>
+                  <span>{studentProgress.gems} جواهر</span>
+                </div>
+                <div style={styles.progressPointItem}>
+                  <span>🔥</span>
+                  <span>{studentProgress.streak} أيام متواصلة</span>
+                </div>
               </div>
             </div>
           </div>
@@ -799,6 +1079,17 @@ const styles = {
     cursor: 'pointer',
     flex: 1,
   },
+  progressBtn: {
+    padding: '8px 20px',
+    background: 'rgba(16,185,129,0.15)',
+    color: '#34d399',
+    border: '1px solid rgba(16,185,129,0.2)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    flex: 1,
+  },
   notifyBtn: {
     padding: '8px 20px',
     background: 'rgba(139,92,246,0.1)',
@@ -954,6 +1245,102 @@ const styles = {
     textAlign: 'center' as const,
     padding: '30px',
     color: 'rgba(255,255,255,0.3)',
+  },
+  // ✅ أنماط مودال التقدم
+  progressStats: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '12px',
+    marginBottom: '20px',
+  },
+  progressStatCard: {
+    padding: '15px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+    textAlign: 'center' as const,
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  progressStatNumber: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#FFD700',
+    display: 'block',
+  },
+  progressStatLabel: {
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  progressSubTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    marginBottom: '15px',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  progressSubjectsList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px',
+    marginBottom: '20px',
+    maxHeight: '250px',
+    overflowY: 'auto' as const,
+  },
+  progressSubjectItem: {
+    padding: '12px 16px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  progressSubjectHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '6px',
+  },
+  progressSubjectName: {
+    fontSize: '15px',
+    fontWeight: '600',
+  },
+  progressSubjectPercent: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  progressSubjectBar: {
+    width: '100%',
+    height: '4px',
+    background: 'rgba(255,255,255,0.05)',
+    borderRadius: '2px',
+    overflow: 'hidden',
+    marginBottom: '6px',
+  },
+  progressSubjectFill: {
+    height: '100%',
+    background: 'linear-gradient(90deg, #FFD700, #FF6B00)',
+    borderRadius: '2px',
+    transition: 'width 0.5s ease',
+  },
+  progressSubjectDetails: {
+    display: 'flex',
+    gap: '15px',
+    fontSize: '12px',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  progressPoints: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '10px',
+    padding: '15px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  progressPointItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    color: 'rgba(255,255,255,0.7)',
   },
   // ✅ أنماط إرسال الإشعارات
   notificationForm: {
