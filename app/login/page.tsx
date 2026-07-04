@@ -195,7 +195,7 @@ export default function LoginPage() {
 
             <div style={styles.welcomeText}>
               <h2 style={styles.welcomeTitle}>مرحباً بعودتك!</h2>
-              <h1 style={styles.platformName}>Fancy Academic</h1>
+              <h1 style={styles.platformName}>Fancy Academy</h1>
               <p style={styles.welcomeMessage}>منصة التعليم الذكية - تفوقك يبدأ من هنا</p>
             </div>
 
