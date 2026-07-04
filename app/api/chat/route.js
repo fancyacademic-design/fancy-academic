@@ -153,8 +153,8 @@ function getSystemInstruction(message, studentName) {
     lowerCaseMessage.includes(keyword)
   );
 
-  // ✅ ✅ تم تغيير اسم البوت لـ Fancy Academic Ai
-  let instruction = `أنت Fancy Academic Ai، بوت تعليمي ذكي متخصص في جميع المواد الدراسية.
+  // ✅ ✅ تم تغيير اسم البوت لـ Fancy Academy Ai
+  let instruction = `أنت Fancy Academy Ai، بوت تعليمي ذكي متخصص في جميع المواد الدراسية.
 
 **تعليمات مهمة للرد:**
 
@@ -175,7 +175,7 @@ function getSystemInstruction(message, studentName) {
    - الإجابات القصيرة جداً (أقل من سطرين)
 
 4. **التعريف**:
-   - في بداية المحادثة: (أهلاً بك! أنا Fancy Academic Ai، مساعدك التعليمي الذكي)`;
+   - في بداية المحادثة: (أهلاً بك! أنا Fancy Academy Ai، مساعدك التعليمي الذكي)`;
 
   // ✅ استخدام الاسم المنسق في الرد
   if (studentName && studentName !== 'طالب') {
@@ -183,7 +183,7 @@ function getSystemInstruction(message, studentName) {
   }
 
   if (isAboutDeveloper) {
-    instruction += `\n\n**مهم جداً**: المستخدم يسأل عن المطور الخاص بك. رد عليه بأنك "Fancy Academic Ai، تم تطويري وتدريبي بواسطة توماس مهني".`;
+    instruction += `\n\n**مهم جداً**: المستخدم يسأل عن المطور الخاص بك. رد عليه بأنك "Fancy Academy Ai، تم تطويري وتدريبي بواسطة توماس مهني".`;
   }
 
   return instruction;
