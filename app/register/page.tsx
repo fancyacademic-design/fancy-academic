@@ -282,7 +282,7 @@ export default function RegisterPage() {
 
             <div style={styles.welcomeText}>
               <h2 style={styles.welcomeTitle}>مرحباً بك في</h2>
-              <h1 style={styles.platformName}>Fancy Academic</h1>
+              <h1 style={styles.platformName}>Fancy Academy</h1>
               <p style={styles.welcomeMessage}>منصة التعليم الذكية</p>
             </div>
 
