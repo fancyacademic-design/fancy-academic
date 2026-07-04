@@ -46,7 +46,7 @@ export default function Home() {
             </div>
             <div style={styles.logoText}>
               <h1 style={isMobile ? {...styles.logoMain, fontSize: '16px'} : styles.logoMain}>
-                Fancy Academic
+                Fancy Academy
               </h1>
               <p style={styles.logoSub}>منصة التعليم الذكية</p>
             </div>
@@ -75,7 +75,7 @@ export default function Home() {
 
             <h1 style={isMobile ? {...styles.heroTitle, fontSize: '28px'} : styles.heroTitle}>
               تعلم بذكاء مع
-              <span style={styles.heroHighlight}> Fancy Academic</span>
+              <span style={styles.heroHighlight}> Fancy Academy</span>
             </h1>
 
             <p style={isMobile ? {...styles.heroDescription, fontSize: '14px'} : styles.heroDescription}>
@@ -212,7 +212,7 @@ export default function Home() {
           <div style={styles.ctaCard}>
             <div style={styles.ctaContent}>
               <h2 style={isMobile ? {...styles.ctaTitle, fontSize: '22px'} : styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
-              <p style={isMobile ? {...styles.ctaText, fontSize: '13px'} : styles.ctaText}>انضم إلى Fancy Academic واستمتع بتجربة تعليمية متطورة</p>
+              <p style={isMobile ? {...styles.ctaText, fontSize: '13px'} : styles.ctaText}>انضم إلى Fancy Academy واستمتع بتجربة تعليمية متطورة</p>
               <button style={isMobile ? {...styles.ctaButton, fontSize: '13px', padding: '10px 20px'} : styles.ctaButton} 
                 onClick={() => router.push('/register')}>
                 ✦ إنشاء حساب مجاني
@@ -228,7 +228,7 @@ export default function Home() {
             <div style={styles.footerInfo}>
               <div style={styles.footerLogo}>
                 <span style={styles.footerLogoIcon}>✦</span>
-                <h3 style={isMobile ? {...styles.footerTitle, fontSize: '16px'} : styles.footerTitle}>Fancy Academic</h3>
+                <h3 style={isMobile ? {...styles.footerTitle, fontSize: '16px'} : styles.footerTitle}>Fancy Academy</h3>
               </div>
               <p style={isMobile ? {...styles.footerText, fontSize: '12px'} : styles.footerText}>
                 منصة التعليم الذكية التي تجمع بين المدرسين المتخصصين والتقنيات الحديثة
@@ -246,7 +246,7 @@ export default function Home() {
 
           <div style={styles.footerBottom}>
             <p style={isMobile ? {...styles.copyright, fontSize: '10px'} : styles.copyright}>
-              © {new Date().getFullYear()} Fancy Academic. جميع الحقوق محفوظة
+              © {new Date().getFullYear()} Fancy Academy. جميع الحقوق محفوظة
             </p>
           </div>
         </div>
