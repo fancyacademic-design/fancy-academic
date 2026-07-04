@@ -49,7 +49,7 @@ export default function CoursePage() {
     whatsapp: "https://wa.me/201080217436"
   }
 
-  const PLATFORM_NAME = "Fancy Academic 🎓"
+  const PLATFORM_NAME = "Fancy Academy 🎓"
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768)
