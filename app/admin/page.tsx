@@ -839,9 +839,9 @@ function StudentsTab() {
               onClick={() => setFilterGrade(grade.value)}
               style={{
                 ...styles.gradeFilterBtn,
-                background: filterGrade === grade.value ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                color: filterGrade === grade.value ? 'white' : 'rgba(255,255,255,0.7)',
-                borderColor: filterGrade === grade.value ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.1)',
+                background: filterGrade === grade.value ? '#8b5cf6' : 'rgba(255,255,255,0.08)',
+                color: filterGrade === grade.value ? 'white' : '#e5e7eb',
+                borderColor: filterGrade === grade.value ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.15)',
               }}
             >
               {grade.label}
@@ -2694,10 +2694,10 @@ const styles = {
     borderRadius: '10px',
     border: '2px solid #e5e7eb'
   },
-  // ✅ ✅ أنماط فلترة المراحل - واضحة ومضاءة
+  // ✅ ✅ أنماط فلترة المراحل - واضحة ومضاءة (معدلة)
   gradeFilterSection: {
     padding: '12px 16px',
-    background: 'rgba(255,255,255,0.05)',
+    background: '#1f2937', // ✅ خلفية غامقة بدلاً من الشفافة
     borderRadius: '10px',
     marginBottom: '15px',
     border: '1px solid rgba(255,255,255,0.1)',
@@ -2709,7 +2709,7 @@ const styles = {
   gradeFilterLabel: {
     fontSize: '14px',
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+    color: '#e5e7eb', // ✅ لون فاتح للوضوح
     minWidth: '120px',
   },
   gradeFilterButtons: {
@@ -2728,9 +2728,12 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    background: 'rgba(255,255,255,0.05)',
-    color: 'rgba(255,255,255,0.8)',
+    background: 'rgba(255,255,255,0.08)', // ✅ خلفية شفافة فاتحة
+    color: '#e5e7eb', // ✅ لون فاتح
     borderColor: 'rgba(255,255,255,0.15)',
+    '&:hover': {
+      background: 'rgba(255,255,255,0.15)',
+    }
   },
   gradeCount: {
     fontSize: '11px',
