@@ -37,7 +37,7 @@ export default function AdminStorePage() {
   const [productForm, setProductForm] = useState({
     name: '',
     description: '',
-    type: 'buy_with_money', // buy_with_money أو buy_with_xp
+    type: 'buy_with_money', // buy_with_money أو buy_with_gems
     price: 0,
     content: '',
     isActive: true,
@@ -302,20 +302,23 @@ export default function AdminStorePage() {
     }
   };
 
+  // ✅ ✅ دوال المساعدة - معدلة
   const getProductIcon = (type: string) => {
     if (type === 'buy_with_money') return '💰';
-    return '⭐';
+    if (type === 'buy_with_gems') return '💎';
+    return '🎁';
   };
 
   const getTypeLabel = (type: string) => {
     if (type === 'buy_with_money') return 'شراء بفلوس';
-    if (type === 'buy_with_xp') return 'شراء بنقاط خبرة';
+    if (type === 'buy_with_gems') return 'شراء بجواهر';
     return type;
   };
 
   const getPriceLabel = (type: string) => {
     if (type === 'buy_with_money') return 'جنيه';
-    return 'نقاط خبرة';
+    if (type === 'buy_with_gems') return 'جواهر';
+    return '';
   };
 
   if (loading) {
@@ -449,7 +452,7 @@ export default function AdminStorePage() {
                       style={styles.select}
                     >
                       <option value="buy_with_money">💰 شراء بفلوس</option>
-                      <option value="buy_with_xp">⭐ شراء بنقاط خبرة</option>
+                      <option value="buy_with_gems">💎 شراء بجواهر</option>
                     </select>
                   </div>
 
@@ -549,7 +552,7 @@ export default function AdminStorePage() {
                       style={styles.select}
                     >
                       <option value="buy_with_money">💰 شراء بفلوس</option>
-                      <option value="buy_with_xp">⭐ شراء بنقاط خبرة</option>
+                      <option value="buy_with_gems">💎 شراء بجواهر</option>
                     </select>
                   </div>
 
@@ -716,9 +719,9 @@ export default function AdminStorePage() {
               </div>
               <div style={styles.statCard}>
                 <span style={styles.statNumber}>
-                  {transactions.filter(t => t.productType === 'buy_with_xp').length}
+                  {transactions.filter(t => t.productType === 'buy_with_gems').length}
                 </span>
-                <span style={styles.statLabel}>شراء بنقاط خبرة</span>
+                <span style={styles.statLabel}>شراء بجواهر</span>
               </div>
               <div style={styles.statCard}>
                 <span style={styles.statNumber}>
