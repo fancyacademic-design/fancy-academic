@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { 
@@ -20,7 +19,6 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#ec4899'
 const ICONS = ['📐', '🔬', '📖', '⚗️', '⚛️', '🧮', '🌍', '📚', '🎯', '💡', '🧪', '📝'];
 
 export default function AdminSubjects() {
-  const router = useRouter();
   const [teachers, setTeachers] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,43 +36,17 @@ export default function AdminSubjects() {
     isActive: true,
   });
 
+  // ✅ لا يوجد useEffect للتحقق - نحمّل البيانات مباشرة
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    console.log('📦 userData في admin/subjects:', userData);
-
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(userData);
-      console.log('👤 المستخدم:', parsed);
-      console.log('🎯 الدور:', parsed.role);
-
-      // ✅ تعطيل التحقق من الصلاحية مؤقتاً
-      // if (parsed.role !== 'admin') {
-      //   router.push('/platform');
-      //   return;
-      // }
-
-      // ✅ اجعل الدور admin مؤقتاً
-      parsed.role = 'admin';
-
-      loadData();
-    } catch (error) {
-      console.error('❌ خطأ:', error);
-      router.push('/login');
-    }
-  }, [router]);
+    loadData();
+  }, []);
 
   const loadData = async () => {
     try {
-      // ✅ جلب كل المدرسين (حتى غير المعتمدين)
+      // ✅ جلب كل المدرسين
       const teachersQuery = query(
         collection(db, 'users'),
         where('role', '==', 'teacher')
-        // ✅ تم إزالة شرط isApproved
       );
       const teachersSnapshot = await getDocs(teachersQuery);
       const teachersData = teachersSnapshot.docs.map(doc => ({
@@ -84,7 +56,7 @@ export default function AdminSubjects() {
       setTeachers(teachersData);
       console.log('✅ تم جلب المدرسين:', teachersData.length);
 
-      // ✅ جلب المواد مع المدرسين
+      // ✅ جلب المواد
       const subjectsSnapshot = await getDocs(
         query(collection(db, 'subjects'), orderBy('createdAt', 'desc'))
       );
@@ -93,8 +65,9 @@ export default function AdminSubjects() {
         ...doc.data(),
       }));
       setSubjects(subjectsData);
+      console.log('✅ تم جلب المواد:', subjectsData.length);
     } catch (error) {
-      console.error('❌ خطأ:', error);
+      console.error('❌ خطأ في تحميل البيانات:', error);
       setMessage('❌ حدث خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
@@ -242,7 +215,7 @@ export default function AdminSubjects() {
     <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.headerContent}>
-         
+          <Link href="/admin/dashboard" style={styles.backButton}>← العودة</Link>
           <h1 style={styles.title}>📚 إدارة المواد</h1>
           <span style={styles.badge}>👨‍🏫 تعيين للمدرسين</span>
         </div>
