@@ -1,60 +1,31 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // ✅ أضف هذا السطر
 
 export default function Home() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
-  const [isChecking, setIsChecking] = useState(true);
 
-  // ✅ التحقق من وجود مستخدم مسجل
-  useEffect(() => {
-    try {
-      const data = localStorage.getItem('currentUser');
-      if (data) {
-        const parsed = JSON.parse(data);
-        setUserData(parsed);
-        console.log('👤 مستخدم مسجل:', parsed.name);
-      }
-    } catch (e) {
-      console.error('خطأ في قراءة البيانات');
-    } finally {
-      setIsChecking(false);
-    }
-  }, []);
-
+  // ✅ تأثيرات التمرير وحجم الشاشة فقط، لا علاقة بـ localStorage
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-    
+
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', checkMobile);
     };
   }, []);
-
-  // ✅ دالة للانتقال إلى المنصة
-  const goToPlatform = () => {
-    router.push('/platform');
-  };
-
-  // ✅ دالة تسجيل الخروج
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    setUserData(null);
-    router.push('/');
-  };
 
   return (
     <div style={styles.container}>
@@ -82,40 +53,20 @@ export default function Home() {
             </div>
           </div>
 
+          {/* ✅ أزرار ثابتة دائماً */}
           <nav style={isMobile ? styles.navMobile : styles.nav}>
-            {/* ✅ إذا كان هناك مستخدم مسجل، نعرض زر دخول المنصة */}
-            {!isChecking && userData ? (
-              <>
-                <span style={styles.userGreeting}>👋 {userData.name}</span>
-                <button 
-                  style={isMobile ? {...styles.navButtonPrimary, fontSize: '12px', padding: '6px 14px'} : styles.navButtonPrimary} 
-                  onClick={goToPlatform}
-                >
-                  🚀 دخول المنصة
-                </button>
-                <button 
-                  style={isMobile ? {...styles.navButton, fontSize: '12px', padding: '6px 14px'} : styles.navButton} 
-                  onClick={handleLogout}
-                >
-                  تسجيل الخروج
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  style={isMobile ? {...styles.navButton, fontSize: '12px', padding: '6px 14px'} : styles.navButton} 
-                  onClick={() => router.push('/login')}
-                >
-                  تسجيل الدخول
-                </button>
-                <button 
-                  style={isMobile ? {...styles.navButtonPrimary, fontSize: '12px', padding: '6px 14px'} : styles.navButtonPrimary} 
-                  onClick={() => router.push('/register')}
-                >
-                  انضم الآن
-                </button>
-              </>
-            )}
+            <button
+              style={isMobile ? {...styles.navButton, fontSize: '12px', padding: '6px 14px'} : styles.navButton}
+              onClick={() => router.push('/login')}
+            >
+              تسجيل الدخول
+            </button>
+            <button
+              style={isMobile ? {...styles.navButtonPrimary, fontSize: '12px', padding: '6px 14px'} : styles.navButtonPrimary}
+              onClick={() => router.push('/register')}
+            >
+              انضم الآن
+            </button>
           </nav>
         </div>
       </header>
@@ -138,30 +89,20 @@ export default function Home() {
               مع نظام متابعة وتقييم متطور يحفزك على التفوق
             </p>
 
+            {/* ✅ أزرار ثابتة دائماً */}
             <div style={isMobile ? styles.heroButtonsMobile : styles.heroButtons}>
-              {!isChecking && userData ? (
-                <button 
-                  style={isMobile ? {...styles.primaryButton, fontSize: '13px', padding: '10px 20px'} : styles.primaryButton} 
-                  onClick={goToPlatform}
-                >
-                  🚀 دخول المنصة
-                </button>
-              ) : (
-                <>
-                  <button 
-                    style={isMobile ? {...styles.primaryButton, fontSize: '13px', padding: '10px 20px'} : styles.primaryButton} 
-                    onClick={() => router.push('/register')}
-                  >
-                    ✨ ابدأ رحلتك الآن
-                  </button>
-                  <button 
-                    style={isMobile ? {...styles.secondaryButton, fontSize: '13px', padding: '10px 20px'} : styles.secondaryButton} 
-                    onClick={() => router.push('/login')}
-                  >
-                    ← تسجيل الدخول
-                  </button>
-                </>
-              )}
+              <button
+                style={isMobile ? {...styles.primaryButton, fontSize: '13px', padding: '10px 20px'} : styles.primaryButton}
+                onClick={() => router.push('/register')}
+              >
+                ✨ ابدأ رحلتك الآن
+              </button>
+              <button
+                style={isMobile ? {...styles.secondaryButton, fontSize: '13px', padding: '10px 20px'} : styles.secondaryButton}
+                onClick={() => router.push('/login')}
+              >
+                ← تسجيل الدخول
+              </button>
             </div>
 
             <div style={isMobile ? styles.statsMobile : styles.stats}>
@@ -190,7 +131,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ✅ باقي الكود كما هو (المميزات، المواد، الدعم، CTA، الفوتر) */}
+        {/* ✅ باقي الأقسام كما هي */}
         <div style={styles.features}>
           <div style={styles.featuresHeader}>
             <span style={styles.featuresBadge}>✦ مميزاتنا</span>
@@ -268,9 +209,9 @@ export default function Home() {
               <p style={isMobile ? {...styles.supportText, fontSize: '13px'} : styles.supportText}>
                 لديك استفسار أو تحتاج مساعدة؟ فريق الدعم جاهز لمساعدتك في أي وقت علي واتساب
               </p>
-              <a 
-                href="https://wa.me/qr/QWI36BWNICGVH1" 
-                target="_blank" 
+              <a
+                href="https://wa.me/qr/QWI36BWNICGVH1"
+                target="_blank"
                 style={styles.supportButton}
               >
                 تواصل معنا
@@ -284,21 +225,12 @@ export default function Home() {
             <div style={styles.ctaContent}>
               <h2 style={isMobile ? {...styles.ctaTitle, fontSize: '22px'} : styles.ctaTitle}>ابدأ رحلتك التعليمية اليوم</h2>
               <p style={isMobile ? {...styles.ctaText, fontSize: '13px'} : styles.ctaText}>انضم إلى Fancy Academy واستمتع بتجربة تعليمية متطورة</p>
-              {!isChecking && userData ? (
-                <button 
-                  style={isMobile ? {...styles.ctaButton, fontSize: '13px', padding: '10px 20px'} : styles.ctaButton} 
-                  onClick={goToPlatform}
-                >
-                  🚀 دخول المنصة
-                </button>
-              ) : (
-                <button 
-                  style={isMobile ? {...styles.ctaButton, fontSize: '13px', padding: '10px 20px'} : styles.ctaButton} 
-                  onClick={() => router.push('/register')}
-                >
-                  ✦ إنشاء حساب مجاني
-                </button>
-              )}
+              <button
+                style={isMobile ? {...styles.ctaButton, fontSize: '13px', padding: '10px 20px'} : styles.ctaButton}
+                onClick={() => router.push('/register')}
+              >
+                ✦ إنشاء حساب مجاني
+              </button>
             </div>
           </div>
         </div>
@@ -319,17 +251,9 @@ export default function Home() {
 
             <div style={styles.footerLinks}>
               <h4 style={styles.footerLinksTitle}>روابط سريعة</h4>
-              {!isChecking && userData ? (
-                <button onClick={goToPlatform} style={{...styles.footerLink, background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px'}}>
-                  🚀 دخول المنصة
-                </button>
-              ) : (
-                <>
-                  <Link href="/login" style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>تسجيل الدخول</Link>
-                  <Link href="/register" style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>إنشاء حساب</Link>
-                </>
-              )}
-              <a href="https://wa.me/message/UKASWZCU5BNLN1?src=qr" target="_blank" 
+              <Link href="/login" style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>تسجيل الدخول</Link>
+              <Link href="/register" style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>إنشاء حساب</Link>
+              <a href="https://wa.me/message/UKASWZCU5BNLN1?src=qr" target="_blank"
                 style={isMobile ? {...styles.footerLink, fontSize: '12px'} : styles.footerLink}>الدعم الفني</a>
             </div>
           </div>
@@ -363,7 +287,7 @@ export default function Home() {
   );
 }
 
-// ✅ جميع الأنماط كما هي (نفسها)
+// ✅ جميع الأنماط ثابتة (بدون أي تغيير)
 const styles: any = {
   container: {
     minHeight: '100vh',
@@ -494,11 +418,6 @@ const styles: any = {
     transition: 'all 0.3s',
     fontSize: '14px',
     boxShadow: '0 4px 20px rgba(255, 215, 0, 0.2)',
-  },
-  userGreeting: {
-    fontSize: '14px',
-    color: 'rgba(255,255,255,0.6)',
-    padding: '0 10px',
   },
   main: {
     position: 'relative',
