@@ -27,7 +27,7 @@ export default function PlatformPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   
-  // ✅ إحصائيات الطالب (من غير stars)
+  // ✅ إحصائيات الطالب
   const [stats, setStats] = useState({
     total: 0,
     opened: 0,
@@ -43,10 +43,8 @@ export default function PlatformPage() {
   // ✅ طلبات الربط
   const [linkRequests, setLinkRequests] = useState<any[]>([]);
   
-  // ✅ الإشعارات العادية
+  // ✅ الإشعارات
   const [notifications, setNotifications] = useState<any[]>([]);
-  
-  // ✅ كل الإشعارات (للعد)
   const [allNotifications, setAllNotifications] = useState<any[]>([]);
   
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
@@ -82,7 +80,7 @@ export default function PlatformPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMobile]);
 
-  // ✅ تحميل بيانات المستخدم والمواد وطلبات الربط والإشعارات
+  // ✅ تحميل بيانات المستخدم
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -113,18 +111,13 @@ export default function PlatformPage() {
         setUser(parsedUser);
 
         await fetchUserStats(userId);
-        
-        // ✅ جلب طلبات الربط
         await fetchLinkRequests(userId);
-        
-        // ✅ جلب الإشعارات العادية
         await fetchNotifications(userId);
 
         if (parsedUser.year && userId) {
           await fetchSubjects(parsedUser.year, userId);
         }
 
-        // ✅ تحديث الحضور اليومي (streak)
         await updateDailyStreak(userId);
 
       } catch (error) {
@@ -137,7 +130,7 @@ export default function PlatformPage() {
     loadUserData();
   }, []);
 
-  // ✅ ✅ جلب إحصائيات المستخدم (من غير stars)
+  // ✅ جلب إحصائيات المستخدم
   const fetchUserStats = async (studentId: string) => {
     try {
       const userRef = doc(db, 'users', studentId);
@@ -145,7 +138,6 @@ export default function PlatformPage() {
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        console.log('📦 بيانات المستخدم:', data);
         setStats(prev => ({
           ...prev,
           xp: data.xp || 0,
@@ -160,7 +152,7 @@ export default function PlatformPage() {
     }
   };
 
-  // ✅ تحديث الحضور اليومي ونظام التجميد
+  // ✅ تحديث الحضور اليومي
   const updateDailyStreak = async (studentId: string) => {
     try {
       const userRef = doc(db, 'users', studentId);
@@ -237,7 +229,7 @@ export default function PlatformPage() {
     }
   };
 
-  // ✅ جلب الإشعارات العادية
+  // ✅ جلب الإشعارات
   const fetchNotifications = async (studentId: string) => {
     try {
       const allQuery = query(
@@ -409,13 +401,12 @@ export default function PlatformPage() {
     }
   };
 
-  // ✅ ✅ جلب المواد وحساب التقدم من الامتحانات مباشرة
+  // ✅ جلب المواد
   const fetchSubjects = async (userYear: string, studentId: string) => {
     try {
       setSubjectsLoading(true);
       setFetchError(null);
 
-      // ✅ 1. جلب جميع المواد
       const subjectsSnapshot = await getDocs(collection(db, 'subjects'));
       const allSubjects: any[] = [];
       
@@ -443,19 +434,16 @@ export default function PlatformPage() {
         });
       }
 
-      // ✅ 2. جلب المواد المسجل فيها الطالب
       let enrolledSubjects: string[] = [];
       try {
         const enrolledSnapshot = await getDocs(
           query(collection(db, 'student_subjects'), where('studentId', '==', studentId))
         );
         enrolledSubjects = enrolledSnapshot.docs.map((doc) => doc.data().subjectId);
-        console.log('📚 المواد المسجل فيها:', enrolledSubjects.length);
       } catch (e) {
         console.log('لا توجد مواد مسجل فيها');
       }
 
-      // ✅ 3. جلب جميع الامتحانات
       let allExams: any[] = [];
       try {
         const examsSnapshot = await getDocs(collection(db, 'exams'));
@@ -463,12 +451,10 @@ export default function PlatformPage() {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log('📝 عدد الامتحانات الكلي:', allExams.length);
       } catch (e) {
         console.log('❌ خطأ في جلب الامتحانات:', e);
       }
 
-      // ✅ 4. جلب نتائج الطالب
       let studentResults: any[] = [];
       try {
         const resultsQuery = query(
@@ -480,12 +466,10 @@ export default function PlatformPage() {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log('📊 نتائج الطالب:', studentResults.length);
       } catch (e) {
         console.log('❌ خطأ في جلب نتائج الطالب:', e);
       }
 
-      // ✅ 5. حساب التقدم لكل مادة
       const subjectsWithStatus = await Promise.all(allSubjects.map(async (subject) => {
         const isEnrolled = enrolledSubjects.includes(subject.id);
         
@@ -493,11 +477,9 @@ export default function PlatformPage() {
         let completedExams = 0;
 
         if (isEnrolled) {
-          // ✅ جلب جميع الامتحانات الخاصة بهذه المادة
           const subjectExams = allExams.filter(exam => exam.subjectId === subject.id);
           totalExams = subjectExams.length;
           
-          // ✅ حساب عدد الامتحانات المكتملة
           subjectExams.forEach(exam => {
             const result = studentResults.find(r => r.examId === exam.id);
             if (result) {
@@ -506,7 +488,6 @@ export default function PlatformPage() {
           });
         }
         
-        // ✅ حساب النسبة المئوية
         const progress = totalExams > 0 ? Math.round((completedExams / totalExams) * 100) : 0;
 
         return {
@@ -518,7 +499,6 @@ export default function PlatformPage() {
 
       setSubjects(subjectsWithStatus);
 
-      // ✅ حساب التقدم الإجمالي (متوسط تقدم المواد المسجل فيها)
       const enrolledSubjectsList = subjectsWithStatus.filter(s => s.isEnrolled);
       const openedCount = enrolledSubjectsList.length;
       
@@ -565,7 +545,7 @@ export default function PlatformPage() {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   const handleEnroll = async (subjectId: string) => {
@@ -1046,8 +1026,8 @@ export default function PlatformPage() {
                   key={subject.id}
                   style={isMobile ? styles.courseCardMobile : styles.courseCard}
                 >
-                  <div style={isMobile ? styles.courseHeaderMobile : styles.courseHeader}>
-                    {/* ✅ عرض الصورة بحجم المربع بالكامل */}
+                  {/* ✅ الصورة - تغطي المربع بالكامل */}
+                  <div style={styles.imageContainer}>
                     {subject.imageUrl ? (
                       <div style={isMobile ? styles.subjectImageWrapperMobile : styles.subjectImageWrapper}>
                         <img 
@@ -1057,45 +1037,40 @@ export default function PlatformPage() {
                         />
                       </div>
                     ) : (
-                      <div style={isMobile ? {...styles.courseIcon, fontSize: '28px', width: '50px', height: '50px'} : styles.courseIcon}>
-                        {subject.isEnrolled ? '📖' : '📚'}
+                      <div style={isMobile ? styles.subjectImagePlaceholderMobile : styles.subjectImagePlaceholder}>
+                        <span style={isMobile ? {...styles.placeholderIcon, fontSize: '32px'} : styles.placeholderIcon}>
+                          {subject.isEnrolled ? '📖' : '📚'}
+                        </span>
                       </div>
                     )}
-                    <div>
-                      <h3
-                        style={
-                          isMobile
-                            ? styles.courseTitleMobile
-                            : styles.courseTitle
-                        }
-                      >
-                        {subject.name}
-                      </h3>
-                      {subject.grade && (
-                        <span
-                          style={{
-                            ...styles.courseCategory,
-                            background: 'rgba(255,255,255,0.05)',
-                            color: 'rgba(255,255,255,0.6)',
-                            fontSize: isMobile ? '10px' : '12px',
-                          }}
-                        >
-                          {subject.grade}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
-                  <p
-                    style={
-                      isMobile
-                        ? styles.courseDescriptionMobile
-                        : styles.courseDescription
-                    }
-                  >
+                  {/* ✅ اسم المادة تحت الصورة */}
+                  <h3 style={isMobile ? styles.courseTitleMobile : styles.courseTitle}>
+                    {subject.name}
+                  </h3>
+
+                  {subject.grade && (
+                    <span
+                      style={{
+                        ...styles.courseCategory,
+                        background: 'rgba(255,255,255,0.05)',
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: isMobile ? '10px' : '12px',
+                        display: 'inline-block',
+                        marginBottom: '8px',
+                      }}
+                    >
+                      {subject.grade}
+                    </span>
+                  )}
+
+                  {/* ✅ الوصف */}
+                  <p style={isMobile ? styles.courseDescriptionMobile : styles.courseDescription}>
                     {subject.description || 'مادة تعليمية متخصصة'}
                   </p>
 
+                  {/* ✅ شريط التقدم */}
                   {subject.isEnrolled && (
                     <div style={styles.progressContainer}>
                       <div style={styles.progressBar}>
@@ -1112,11 +1087,13 @@ export default function PlatformPage() {
                     </div>
                   )}
 
+                  {/* ✅ التاريخ والمدرس */}
                   <div style={isMobile ? styles.courseMetaMobile : styles.courseMeta}>
                     <span style={isMobile ? {fontSize: '11px'} : {}}>📅 {new Date(subject.createdAt).toLocaleDateString('ar-EG')}</span>
                     <span style={isMobile ? {fontSize: '11px'} : {}}>👨‍🏫 {subject.teacherName || 'لم يحدد'}</span>
                   </div>
 
+                  {/* ✅ الأزرار */}
                   <div style={isMobile ? styles.courseFooterMobile : styles.courseFooter}>
                     <span
                       style={{
@@ -1844,60 +1821,58 @@ const styles: any = {
   },
   coursesGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
     gap: '20px',
     animation: 'fadeIn 0.5s ease',
   },
   coursesGridMobile: {
     display: 'grid',
-    gridTemplateColumns: '1fr',
+    gridTemplateColumns: '1fr 1fr',
     gap: '12px',
     animation: 'fadeIn 0.5s ease',
   },
   courseCard: {
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '16px',
-    padding: '20px',
+    padding: '16px',
     border: '1px solid rgba(255,255,255,0.05)',
     transition: 'all 0.3s',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center' as const,
   },
   courseCardMobile: {
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '12px',
-    padding: '12px',
+    padding: '10px',
     border: '1px solid rgba(255,255,255,0.05)',
     transition: 'all 0.3s',
-  },
-  courseHeader: {
     display: 'flex',
-    gap: '15px',
-    marginBottom: '15px',
+    flexDirection: 'column',
     alignItems: 'center',
+    textAlign: 'center' as const,
   },
-  courseHeaderMobile: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '10px',
-    alignItems: 'center',
-  },
-  // ✅ ستايلات الصورة - تغطي المربع بالكامل
-  subjectImageWrapper: {
-    width: '70px',
-    height: '70px',
+  imageContainer: {
+    width: '100%',
+    aspectRatio: '1/1',
     borderRadius: '12px',
     overflow: 'hidden',
-    flexShrink: 0,
-    border: '2px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.03)',
+    marginBottom: '10px',
+    background: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  subjectImageWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: '12px',
+    overflow: 'hidden',
   },
   subjectImageWrapperMobile: {
-    width: '55px',
-    height: '55px',
+    width: '100%',
+    height: '100%',
     borderRadius: '10px',
     overflow: 'hidden',
-    flexShrink: 0,
-    border: '2px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.03)',
   },
   subjectImage: {
     width: '100%',
@@ -1911,26 +1886,37 @@ const styles: any = {
     objectFit: 'cover' as const,
     display: 'block',
   },
-  courseIcon: {
-    fontSize: '32px',
-    background: 'rgba(255,255,255,0.03)',
-    width: '50px',
-    height: '50px',
-    borderRadius: '12px',
+  subjectImagePlaceholder: {
+    width: '100%',
+    height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+  },
+  subjectImagePlaceholderMobile: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+  },
+  placeholderIcon: {
+    fontSize: '48px',
+    opacity: 0.5,
   },
   courseTitle: {
     fontSize: '18px',
-    fontWeight: '600',
+    fontWeight: '700',
     color: 'white',
-    margin: '0 0 5px 0',
+    margin: '0 0 4px 0',
   },
   courseTitleMobile: {
     fontSize: '14px',
-    fontWeight: '600',
+    fontWeight: '700',
     color: 'white',
     margin: '0 0 3px 0',
   },
@@ -1942,26 +1928,29 @@ const styles: any = {
     display: 'inline-block',
   },
   courseDescription: {
-    fontSize: '14px',
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: '15px',
-    lineHeight: 1.6,
-  },
-  courseDescriptionMobile: {
-    fontSize: '12px',
+    fontSize: '13px',
     color: 'rgba(255,255,255,0.5)',
     marginBottom: '10px',
     lineHeight: 1.5,
+    width: '100%',
+  },
+  courseDescriptionMobile: {
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: '8px',
+    lineHeight: 1.4,
+    width: '100%',
   },
   progressContainer: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    marginBottom: '12px',
+    gap: '10px',
+    marginBottom: '10px',
+    width: '100%',
   },
   progressBar: {
     flex: 1,
-    height: '6px',
+    height: '5px',
     background: 'rgba(255,255,255,0.05)',
     borderRadius: '3px',
     overflow: 'hidden',
@@ -1973,64 +1962,75 @@ const styles: any = {
     transition: 'width 0.5s ease',
   },
   progressText: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#FFD700',
     fontWeight: 'bold',
-    minWidth: '35px',
+    minWidth: '30px',
   },
   courseMeta: {
     display: 'flex',
-    gap: '15px',
-    fontSize: '13px',
+    gap: '12px',
+    fontSize: '12px',
     color: 'rgba(255,255,255,0.3)',
-    marginBottom: '15px',
+    marginBottom: '12px',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
   },
   courseMetaMobile: {
     display: 'flex',
-    gap: '10px',
-    fontSize: '11px',
+    gap: '8px',
+    fontSize: '10px',
     color: 'rgba(255,255,255,0.3)',
-    marginBottom: '10px',
+    marginBottom: '8px',
     flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
   },
   courseFooter: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+    gap: '8px',
   },
   courseFooterMobile: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+    gap: '6px',
     flexWrap: 'wrap',
-    gap: '8px',
   },
   statusBadge: {
     padding: '6px 12px',
     borderRadius: '20px',
     fontSize: '13px',
     fontWeight: '600',
+    whiteSpace: 'nowrap' as const,
   },
   courseButton: {
-    padding: '8px 16px',
+    padding: '6px 14px',
     background: 'linear-gradient(135deg, #10b981, #059669)',
     color: 'white',
     textDecoration: 'none',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: '600',
     transition: 'all 0.3s',
+    whiteSpace: 'nowrap' as const,
   },
   enrollButton: {
-    padding: '8px 16px',
+    padding: '6px 14px',
     background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    whiteSpace: 'nowrap' as const,
   },
   loadingCourses: {
     textAlign: 'center',
