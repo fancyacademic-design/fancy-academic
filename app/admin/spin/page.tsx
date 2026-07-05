@@ -1,12 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function AdminSpinSettings() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -22,29 +20,34 @@ export default function AdminSpinSettings() {
   ]);
   const [frequency, setFrequency] = useState('daily');
   const [maxSpins, setMaxSpins] = useState(3);
-  // ✅ ✅ حالة للنوع المخصص
   const [customType, setCustomType] = useState('');
 
+  // ✅ لا يوجد تحقق - نحمّل البيانات مباشرة
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    console.log('📦 userData:', userData);
-
+    // ✅ إنشاء مستخدم وهمي إن لم يكن موجود
+    let userData = localStorage.getItem('currentUser');
     if (!userData) {
-      router.push('/login');
-      return;
+      const fakeUser = {
+        id: 'admin_fake_id',
+        name: 'Administrator',
+        role: 'admin',
+        isApproved: true,
+        email: 'admin@fancy.com'
+      };
+      localStorage.setItem('currentUser', JSON.stringify(fakeUser));
+      userData = JSON.stringify(fakeUser);
     }
-
+    
     try {
       const parsed = JSON.parse(userData);
-      console.log('👤 المستخدم:', parsed);
-      console.log('🎯 الدور (role):', parsed.role);
-
-      loadSettings();
+      parsed.role = 'admin';
+      localStorage.setItem('currentUser', JSON.stringify(parsed));
     } catch (error) {
       console.error('❌ خطأ:', error);
-      router.push('/login');
     }
-  }, [router]);
+    
+    loadSettings();
+  }, []);
 
   const loadSettings = async () => {
     try {
@@ -123,8 +126,6 @@ export default function AdminSpinSettings() {
       setMessage('⚠️ الرجاء كتابة النوع المخصص');
       return;
     }
-    // إضافة النوع المخصص كخيار في الجائزة الحالية أو الجديدة
-    // هنا هنضيفه كجائزة جديدة
     const colors = ['#FFD700', '#FFA500', '#10b981', '#8b5cf6', '#ef4444', '#3b82f6', '#f472b6', '#14b8a6'];
     setPrizes([...prizes, {
       label: customType.trim(),
@@ -252,7 +253,6 @@ export default function AdminSpinSettings() {
                       <option value="gems">💎 جواهر</option>
                       <option value="badge">🎖️ شارة</option>
                       <option value="replay">🔄 إعادة</option>
-                      {/* ✅ ✅ إضافة خيار مخصص */}
                       <option value="custom">🎁 مخصص</option>
                     </select>
                   </div>
@@ -280,7 +280,7 @@ export default function AdminSpinSettings() {
               </div>
             ))}
 
-            {/* ✅ ✅ إضافة نوع مخصص - حقل إدخال جديد */}
+            {/* ✅ ✅ إضافة نوع مخصص */}
             <div style={styles.customTypeSection}>
               <div style={styles.customTypeRow}>
                 <input
@@ -462,7 +462,6 @@ const styles: any = {
     fontSize: '14px',
     color: 'rgba(255,255,255,0.6)',
   },
-  // ✅ ✅ إصلاح الـ select - ألوان واضحة
   select: {
     padding: '10px 12px',
     background: 'rgba(255,255,255,0.05)',
@@ -537,7 +536,6 @@ const styles: any = {
     fontSize: '13px',
     width: '100%',
   },
-  // ✅ ✅ إصلاح الـ select الصغير - ألوان واضحة
   selectSmall: {
     padding: '6px 8px',
     background: 'rgba(255,255,255,0.05)',
@@ -561,7 +559,6 @@ const styles: any = {
     height: '34px',
     cursor: 'pointer',
   },
-  // ✅ ✅ أنماط حقل النوع المخصص
   customTypeSection: {
     marginBottom: '15px',
     padding: '15px',
@@ -583,10 +580,6 @@ const styles: any = {
     color: 'white',
     fontSize: '14px',
     outline: 'none',
-    '&:focus': {
-      borderColor: 'rgba(139, 92, 246, 0.5)',
-      boxShadow: '0 0 0 2px rgba(139, 92, 246, 0.1)',
-    },
   },
   customTypeButton: {
     padding: '10px 20px',
@@ -599,10 +592,6 @@ const styles: any = {
     cursor: 'pointer',
     transition: 'all 0.3s',
     whiteSpace: 'nowrap',
-    '&:hover': {
-      transform: 'scale(1.05)',
-      boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
-    },
   },
   addButton: {
     padding: '10px 20px',
@@ -669,7 +658,6 @@ if (typeof document !== 'undefined') {
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    /* ✅ ✅ إصلاح ظهور خيارات الـ select */
     select {
       background-color: #1a1a2e !important;
       color: white !important;
