@@ -1142,10 +1142,10 @@ export default function PlatformPage() {
             <p style={isMobile ? {...styles.supportInfo, fontSize: '10px'} : styles.supportInfo}>
               تطوير:{' '}
               <a
-                href="mailto:tomasmehany@gmail.com"
+                href="mailto:fadyghattaas@gmail.com"
                 style={styles.footerSupportLink}
               >
-                TM
+                Fancy Academy
               </a>
             </p>
             <p style={isMobile ? {...styles.supportInfo, fontSize: '10px'} : styles.supportInfo}>
