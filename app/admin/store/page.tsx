@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { 
@@ -19,7 +18,6 @@ import {
 } from 'firebase/firestore';
 
 export default function AdminStorePage() {
-  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -46,15 +44,31 @@ export default function AdminStorePage() {
     order: 0,
   });
 
-  // ✅ جلب بيانات المستخدم
+  // ✅ لا يوجد تحقق - نحمّل البيانات مباشرة
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
+    // ✅ إنشاء مستخدم وهمي إن لم يكن موجود
+    let userData = localStorage.getItem('currentUser');
     if (!userData) {
-      router.push('/login');
-      return;
+      const fakeUser = {
+        id: 'admin_fake_id',
+        name: 'Administrator',
+        role: 'admin',
+        isApproved: true,
+        email: 'admin@fancy.com'
+      };
+      localStorage.setItem('currentUser', JSON.stringify(fakeUser));
+      userData = JSON.stringify(fakeUser);
     }
-    const parsed = JSON.parse(userData);
-    setUser(parsed);
+    
+    try {
+      const parsed = JSON.parse(userData);
+      parsed.role = 'admin';
+      localStorage.setItem('currentUser', JSON.stringify(parsed));
+      setUser(parsed);
+    } catch (error) {
+      console.error('❌ خطأ:', error);
+    }
+    
     loadData();
     loadExchangeRate();
   }, []);
