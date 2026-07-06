@@ -215,7 +215,7 @@ export default function AdminSubjects() {
     <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.headerContent}>
-          <Link href="/admin/dashboard" style={styles.backButton}>← العودة</Link>
+          <Link href="/admin" style={styles.backButton}>← العودة</Link>
           <h1 style={styles.title}>📚 إدارة المواد</h1>
           <span style={styles.badge}>👨‍🏫 تعيين للمدرسين</span>
         </div>
