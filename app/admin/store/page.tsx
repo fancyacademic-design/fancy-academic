@@ -334,7 +334,7 @@ export default function AdminStorePage() {
     <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.headerContent}>
-          <Link href="/admin/dashboard" style={styles.backButton}>← العودة للوحة التحكم</Link>
+          <Link href="/admin" style={styles.backButton}>← العودة للوحة التحكم</Link>
           <h1 style={styles.title}>⚙️ إدارة المتجر</h1>
           <div style={styles.adminInfo}>
             <span style={styles.adminName}>{user?.name || 'أدمن'}</span>
