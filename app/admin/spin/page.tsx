@@ -355,7 +355,7 @@ export default function AdminSpinSettings() {
             </div>
           </div>
 
-          <Link href="/admin/dashboard" style={styles.backLink}>← العودة للوحة التحكم</Link>
+          <Link href="/admin" style={styles.backLink}>← العودة للوحة التحكم</Link>
         </div>
       </main>
 
