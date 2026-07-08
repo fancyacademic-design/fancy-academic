@@ -138,6 +138,7 @@ function TeacherExamsContent() {
     }
   };
 
+  // ✅ ✅ ✅ التعديل المطلوب: جلب امتحانات المدرس فقط
   const loadData = async (teacherId: string) => {
     try {
       setLoading(true);
@@ -191,13 +192,23 @@ function TeacherExamsContent() {
       }));
       setCourses(coursesData);
 
-      let examsQuery = collection(db, 'exams');
+      // ✅ ✅ ✅ التعديل المطلوب: جلب امتحانات المدرس فقط
+      let examsQuery;
       if (subjectIdFromUrl) {
+        // ✅ إذا كان هناك subjectId في الرابط، نجلب امتحانات المادة + المدرس
         examsQuery = query(
           collection(db, 'exams'),
-          where('subjectId', '==', subjectIdFromUrl)
+          where('subjectId', '==', subjectIdFromUrl),
+          where('teacherId', '==', teacherId) // ✅ إضافة فلتر المدرس
+        );
+      } else {
+        // ✅ جلب كل امتحانات المدرس
+        examsQuery = query(
+          collection(db, 'exams'),
+          where('teacherId', '==', teacherId) // ✅ فلترة حسب المدرس
         );
       }
+      
       const examsSnapshot = await getDocs(examsQuery);
       const examsData = examsSnapshot.docs.map(doc => ({
         id: doc.id,
