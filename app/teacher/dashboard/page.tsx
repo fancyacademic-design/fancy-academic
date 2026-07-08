@@ -304,12 +304,12 @@ export default function TeacherDashboard() {
                     >
                       📝 إدارة الامتحانات
                     </Link>
-                    <Link 
-                      href={`/teacher/subject/${subject.id}`} 
-                      style={styles.manageButton}
-                    >
-                      📖 إدارة المحتوى
-                    </Link>
+                    <Link
+                    href={`/teacher/module/${subject.id}`}
+                    style={{ ...styles.actionBtn, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', textDecoration: 'none' }}
+                  >
+                    📖 إدارة المحتوى
+                  </Link>
                   </div>
                 </div>
               ))}
