@@ -164,8 +164,8 @@ export default function AdminPage() {
 
             <div style={styles.loginHint}>
               <p>بيانات الدخول:</p>
-              <p><strong>البريد:</strong> mrfady@fancy</p>
-              <p><strong>كلمة المرور:</strong> MrFady@2030</p>
+              <p><strong>البريد:</strong> mr@</p>
+              <p><strong>كلمة المرور:</strong> Mr@</p>
               <p style={styles.warningText}>⚠️ تأكد من كتابة الحروف الكبيرة والصغيرة</p>
             </div>
           </form>
