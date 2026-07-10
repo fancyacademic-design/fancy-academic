@@ -53,6 +53,11 @@ export default function SubjectPage() {
   // ✅ ✅ التقدم المحسوب من الامتحانات
   const [examProgress, setExamProgress] = useState(0);
 
+  // ✅ ✅ البث المباشر
+  const [liveStreams, setLiveStreams] = useState<any[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<{ [key: string]: string }>({});
+
   // ✅ التحقق من حجم الشاشة
   const [isMobile, setIsMobile] = useState(false);
 
@@ -76,6 +81,52 @@ export default function SubjectPage() {
     loadSubject(parsed.id);
   }, [subjectId]);
 
+  // ✅ ✅ حساب الوقت المتبقي للبث
+  const getTimeRemaining = (scheduledTime: any) => {
+    try {
+      const targetDate = scheduledTime.toDate ? scheduledTime.toDate() : new Date(scheduledTime);
+      const now = new Date();
+      const diff = targetDate.getTime() - now.getTime();
+      
+      if (diff <= 0) return null;
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      let result = '';
+      if (days > 0) result += `${days} يوم `;
+      if (hours > 0 || days > 0) result += `${hours} ساعة `;
+      if (minutes > 0 || hours > 0 || days > 0) result += `${minutes} دقيقة `;
+      result += `${seconds} ثانية`;
+      
+      return result;
+    } catch {
+      return null;
+    }
+  };
+
+  // ✅ ✅ تحديث العد التنازلي للبثوث
+  useEffect(() => {
+    if (liveStreams.length === 0) return;
+
+    const updateTimers = () => {
+      const newTimeRemaining: { [key: string]: string } = {};
+      liveStreams.forEach(stream => {
+        const remaining = getTimeRemaining(stream.scheduledTime);
+        if (remaining) {
+          newTimeRemaining[stream.id] = remaining;
+        }
+      });
+      setTimeRemaining(newTimeRemaining);
+    };
+
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
+    return () => clearInterval(interval);
+  }, [liveStreams]);
+
   // ✅ ✅ جلب نبذة المدرس
   const loadTeacherAbout = async (teacherId: string) => {
     if (!teacherId) return;
@@ -87,7 +138,6 @@ export default function SubjectPage() {
         const data = userDoc.data();
         if (data.aboutTeacher) {
           setTeacherAbout(data.aboutTeacher);
-          console.log('✅ تم جلب نبذة المدرس:', data.aboutTeacher);
         } else {
           console.log('ℹ️ لا توجد نبذة للمدرس');
         }
@@ -99,13 +149,40 @@ export default function SubjectPage() {
     }
   };
 
-  // ✅ ✅ ✅ الحل النهائي - حساب التقدم من الامتحانات مباشرة (من غير دروس)
+  // ✅ ✅ جلب البثوث المباشرة للمادة
+  const loadLiveStreams = async (subjectId: string, studentId: string) => {
+    try {
+      setLiveLoading(true);
+      
+      const streamsQuery = query(
+        collection(db, 'live_streams'),
+        where('subjectId', '==', subjectId),
+        where('isActive', '==', true),
+        orderBy('scheduledTime', 'asc')
+      );
+      const streamsSnapshot = await getDocs(streamsQuery);
+      const streamsData = streamsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      
+      const filteredStreams = streamsData.filter(stream => {
+        if (!stream.isVisible) return false;
+        if (stream.openToAll) return true;
+        return stream.selectedStudents?.includes(studentId);
+      });
+      
+      setLiveStreams(filteredStreams);
+    } catch (error) {
+      console.error('❌ خطأ في جلب البثوث:', error);
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  // ✅ ✅ حساب التقدم من الامتحانات
   const calculateExamProgress = async (studentId: string, subjectId: string) => {
     try {
-      console.log('🔍 ===== بدء حساب التقدم (طريقة مباشرة) =====');
-      console.log('📌 subjectId:', subjectId);
-      
-      // ✅ 1. جلب جميع الامتحانات في المادة
       const examsQuery = query(
         collection(db, 'exams'),
         where('subjectId', '==', subjectId)
@@ -115,41 +192,30 @@ export default function SubjectPage() {
         id: doc.id,
         ...doc.data(),
       }));
-      console.log('📝 عدد الامتحانات في المادة:', examsData.length);
       
       if (examsData.length === 0) {
-        console.log('⚠️ لا توجد امتحانات في هذه المادة');
         setProgress(0);
         return 0;
       }
       
-      // ✅ 2. جلب الامتحانات المكتملة للطالب
       const resultsQuery = query(
         collection(db, 'exam_results'),
         where('studentId', '==', studentId)
       );
       const resultsSnap = await getDocs(resultsQuery);
       const completedExamIds = resultsSnap.docs.map(doc => doc.data().examId);
-      console.log('📝 الامتحانات المكتملة للطالب:', completedExamIds);
 
-      // ✅ 3. حساب التقدم
-      let totalExams = examsData.length;
       let completedExams = 0;
-
       examsData.forEach(exam => {
         if (completedExamIds.includes(exam.id)) {
           completedExams++;
         }
       });
 
-      console.log(`📊 النتيجة: ${completedExams}/${totalExams} امتحان مكتمل`);
-      const examProgress = totalExams > 0 ? Math.round((completedExams / totalExams) * 100) : 0;
-      console.log('📊 النسبة المئوية:', examProgress, '%');
-      
+      const examProgress = examsData.length > 0 ? Math.round((completedExams / examsData.length) * 100) : 0;
       setExamProgress(examProgress);
       setProgress(examProgress);
 
-      // ✅ 4. تحديث التقدم في student_subjects
       const enrolledQuery = query(
         collection(db, 'student_subjects'),
         where('studentId', '==', studentId),
@@ -162,15 +228,11 @@ export default function SubjectPage() {
           progress: examProgress,
           updatedAt: serverTimestamp(),
         });
-        console.log('✅ تم تحديث التقدم في Firebase:', examProgress);
-      } else {
-        console.log('⚠️ الطالب غير مسجل في المادة');
       }
 
       return examProgress;
-
     } catch (error) {
-      console.error('❌ خطأ في حساب التقدم من الامتحانات:', error);
+      console.error('❌ خطأ في حساب التقدم:', error);
       return 0;
     }
   };
@@ -191,12 +253,10 @@ export default function SubjectPage() {
       const subjectData = { id: subjectDoc.id, ...subjectDoc.data() };
       setSubject(subjectData);
 
-      // ✅ جلب نبذة المدرس
       if (subjectData.teacherId) {
         await loadTeacherAbout(subjectData.teacherId);
       }
 
-      // ✅ جلب الكورسات
       const coursesQuery = query(
         collection(db, 'courses'),
         where('subjectId', '==', subjectId),
@@ -208,12 +268,10 @@ export default function SubjectPage() {
         ...doc.data(),
       }));
 
-      // ✅ فلترة حسب مرحلة الطالب
       const studentGrade = user?.grade || '1-prep';
       coursesData = coursesData.filter(course => course.grade === studentGrade);
       coursesData.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-      // ✅ جلب عدد الدروس لكل كورس
       for (const course of coursesData) {
         const lessonsQuery = query(
           collection(db, 'lessons'),
@@ -223,7 +281,6 @@ export default function SubjectPage() {
         course.lessonsCount = lessonsSnapshot.size;
       }
 
-      // ✅ جلب الكورسات المفتوحة للطالب
       const openedSnapshot = await getDocs(
         query(
           collection(db, 'student_courses'),
@@ -241,7 +298,6 @@ export default function SubjectPage() {
 
       setCourses(coursesData);
 
-      // ✅ التحقق من التسجيل
       const enrolledSnapshot = await getDocs(
         query(
           collection(db, 'student_subjects'),
@@ -253,18 +309,12 @@ export default function SubjectPage() {
       const isEnrolledNow = !enrolledSnapshot.empty || subjectData.isGlobal === true;
       setIsEnrolled(isEnrolledNow);
 
-      // ✅ ✅ حساب التقدم من الامتحانات (الطريقة المباشرة)
       if (isEnrolledNow) {
-        console.log('✅ الطالب مسجل في المادة، نحسب التقدم...');
         await calculateExamProgress(studentId, subjectId);
-      } else {
-        console.log('⚠️ الطالب غير مسجل في المادة');
+        await loadLiveStreams(subjectId, studentId);
       }
 
-      // ✅ جلب التعليقات والتقييمات
       await loadReviews();
-
-      // ✅ جلب الإحصائيات
       await loadCounts();
 
     } catch (error) {
@@ -278,7 +328,6 @@ export default function SubjectPage() {
   // ✅ جلب عدد المسجلين والمفعلين
   const loadCounts = async () => {
     try {
-      // ✅ عدد المسجلين في المادة
       const enrolledQuery = query(
         collection(db, 'student_subjects'),
         where('subjectId', '==', subjectId)
@@ -286,7 +335,6 @@ export default function SubjectPage() {
       const enrolledSnap = await getDocs(enrolledQuery);
       setEnrolledCount(enrolledSnap.size);
 
-      // ✅ عدد الطلاب المفعل لهم كورسات في المادة
       const coursesQuery = query(
         collection(db, 'courses'),
         where('subjectId', '==', subjectId)
@@ -305,13 +353,12 @@ export default function SubjectPage() {
         activated += activatedSnap.size;
       }
       setActivatedCount(activated);
-
     } catch (error) {
       console.error('❌ خطأ في جلب الإحصائيات:', error);
     }
   };
 
-  // ✅ ✅ جلب الآراء والتعليقات مع حساب الإحصائيات (من 5 نجوم)
+  // ✅ ✅ جلب الآراء والتعليقات
   const loadReviews = async () => {
     try {
       const q = query(
@@ -326,14 +373,12 @@ export default function SubjectPage() {
       }));
       setReviews(reviewsData);
 
-      // ✅ ✅ حساب متوسط التقييم من 5
       if (reviewsData.length > 0) {
         const totalRating = reviewsData.reduce((sum, r) => sum + (r.rating || 0), 0);
         const avg = totalRating / reviewsData.length;
         setAvgRating(Math.round(avg * 10) / 10);
         setRatingCount(reviewsData.length);
 
-        // ✅ ✅ توزيع التقييمات
         const distribution: { [key: number]: number } = {};
         reviewsData.forEach(r => {
           const rating = Math.round(r.rating || 0);
@@ -397,10 +442,8 @@ export default function SubjectPage() {
       setProgress(0);
       setMessage('✅ تم التسجيل في المادة بنجاح!');
       loadCounts();
-      
-      // ✅ بعد التسجيل، نحسب التقدم من الامتحانات
-      console.log('🔄 بعد التسجيل، نحسب التقدم...');
       await calculateExamProgress(user.id, subjectId);
+      await loadLiveStreams(subjectId, user.id);
     } catch (error) {
       console.error('❌ خطأ:', error);
       setMessage('❌ حدث خطأ في التسجيل');
@@ -418,7 +461,6 @@ export default function SubjectPage() {
     return grades[gradeValue] || gradeValue;
   };
 
-  // ✅ ✅ عرض النجوم المتقفلة (من 5)
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     const hasHalf = rating % 1 >= 0.5;
@@ -428,11 +470,9 @@ export default function SubjectPage() {
     for (let i = 0; i < fullStars; i++) stars += '⭐';
     if (hasHalf) stars += '🌟';
     for (let i = 0; i < emptyStars; i++) stars += '☆';
-    
     return stars;
   };
 
-  // ✅ ✅ عرض شريط توزيع التقييمات
   const renderRatingBar = (rating: number, count: number, total: number) => {
     const percentage = total > 0 ? (count / total) * 100 : 0;
     return (
@@ -507,7 +547,6 @@ export default function SubjectPage() {
             </div>
           </div>
 
-          {/* ✅ ✅ نبذة عن المدرس */}
           {loadingAbout ? (
             <div style={isMobile ? styles.teacherAboutMobile : styles.teacherAbout}>
               <p style={{color: 'rgba(255,255,255,0.3)', fontSize: '13px'}}>⏳ جاري تحميل نبذة المدرس...</p>
@@ -544,7 +583,93 @@ export default function SubjectPage() {
           )}
         </div>
 
-        {/* ✅ قائمة الكورسات - ألوان ثابتة */}
+        {/* ✅ ✅ قسم البث المباشر - مع العد التنازلي */}
+        {isEnrolled && (
+          <div style={isMobile ? styles.liveSectionMobile : styles.liveSection}>
+            <div style={styles.liveHeader}>
+              <h3 style={isMobile ? {...styles.liveTitle, fontSize: '16px'} : styles.liveTitle}>📺 البث المباشر</h3>
+              <span style={styles.liveCount}>{liveStreams.filter(s => s.isVisible).length} بث</span>
+            </div>
+            
+            {liveLoading ? (
+              <div style={styles.liveLoading}>
+                <div style={styles.spinnerSmall}></div>
+                <p>جاري تحميل البثوث...</p>
+              </div>
+            ) : liveStreams.length === 0 ? (
+              <div style={styles.liveEmpty}>
+                <span>📺</span>
+                <p>لا توجد بثوث مباشرة حالياً</p>
+              </div>
+            ) : (
+              <div style={styles.liveList}>
+                {liveStreams.map((stream) => {
+                  const isOpen = new Date() >= (stream.scheduledTime?.toDate?.() || new Date(stream.scheduledTime));
+                  const scheduledDate = stream.scheduledTime?.toDate?.() || new Date(stream.scheduledTime);
+                  const remaining = timeRemaining[stream.id];
+                  
+                  return (
+                    <div key={stream.id} style={{
+                      ...styles.liveItem,
+                      borderColor: isOpen ? '#10b981' : 'rgba(255,255,255,0.05)',
+                      opacity: isOpen ? 1 : 0.6,
+                    }}>
+                      <div style={styles.liveItemHeader}>
+                        <div style={styles.liveItemInfo}>
+                          <span style={styles.liveItemIcon}>📺</span>
+                          <div>
+                            <h4 style={isMobile ? {...styles.liveItemTitle, fontSize: '14px'} : styles.liveItemTitle}>
+                              {stream.title}
+                            </h4>
+                            <div style={isMobile ? styles.liveItemMetaMobile : styles.liveItemMeta}>
+                              <span style={styles.liveItemDate}>
+                                📅 {scheduledDate.toLocaleDateString('ar-EG', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                              <span style={{
+                                ...styles.liveItemStatus,
+                                background: isOpen ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+                                color: isOpen ? '#34d399' : '#f59e0b',
+                              }}>
+                                {isOpen ? '🟢 مفتوح الآن' : '⏳ سيُفتح قريباً'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {stream.description && (
+                          <p style={isMobile ? {...styles.liveItemDesc, fontSize: '12px'} : styles.liveItemDesc}>
+                            {stream.description}
+                          </p>
+                        )}
+                        {isOpen ? (
+                          <button
+                            onClick={() => {
+                              window.open(stream.link, '_blank', 'noopener,noreferrer');
+                            }}
+                            style={isMobile ? {...styles.liveJoinBtn, fontSize: '12px', padding: '6px 14px'} : styles.liveJoinBtn}
+                          >
+                            🚀 دخول البث الآن
+                          </button>
+                        ) : (
+                          <div style={isMobile ? {...styles.liveWaiting, fontSize: '12px'} : styles.liveWaiting}>
+                            ⏳ يفتح خلال: {remaining || 'جاري الحساب...'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ✅ قائمة الكورسات */}
         <h2 style={isMobile ? {...styles.sectionTitle, fontSize: '18px'} : styles.sectionTitle}>📖 الكورسات المتاحة</h2>
         
         {courses.length === 0 ? (
@@ -611,11 +736,10 @@ export default function SubjectPage() {
           </div>
         )}
 
-        {/* ✅ ✅ قسم الآراء والتعليقات - مع إحصائيات التقييم (من 5 نجوم) */}
+        {/* ✅ ✅ قسم الآراء والتعليقات */}
         <div style={isMobile ? styles.reviewsSectionMobile : styles.reviewsSection}>
           <h2 style={isMobile ? {...styles.reviewsTitle, fontSize: '18px'} : styles.reviewsTitle}>💬 الآراء والتعليقات</h2>
           
-          {/* ✅ ✅ إحصائيات التقييم */}
           <div style={isMobile ? styles.ratingStatsMobile : styles.ratingStats}>
             <div style={styles.ratingSummary}>
               <span style={isMobile ? {...styles.avgRatingNumber, fontSize: '32px'} : styles.avgRatingNumber}>
@@ -641,7 +765,6 @@ export default function SubjectPage() {
             </div>
           </div>
           
-          {/* ✅ نموذج إضافة تعليق */}
           {user && (
             <div style={isMobile ? styles.reviewFormMobile : styles.reviewForm}>
               <div style={isMobile ? styles.reviewRatingMobile : styles.reviewRating}>
@@ -685,7 +808,6 @@ export default function SubjectPage() {
             </div>
           )}
 
-          {/* ✅ عرض التعليقات - مع key */}
           <div style={styles.reviewsList}>
             {reviews.length === 0 ? (
               <div style={isMobile ? {...styles.noReviews, fontSize: '13px'} : styles.noReviews}>
@@ -723,6 +845,7 @@ export default function SubjectPage() {
   );
 }
 
+// ✅ ✅ جميع الأنماط
 const styles = {
   container: {
     minHeight: '100vh',
@@ -877,7 +1000,6 @@ const styles = {
     flexWrap: 'wrap' as const,
   },
   
-  // ✅ ✅ أنماط نبذة عن المدرس
   teacherAbout: {
     marginTop: '15px',
     padding: '15px 20px',
@@ -966,6 +1088,143 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.3s',
   },
+  
+  // ✅ ✅ أنماط البث المباشر
+  liveSection: {
+    marginTop: '25px',
+    padding: '20px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '16px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  liveSectionMobile: {
+    marginTop: '15px',
+    padding: '12px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  liveHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+  },
+  liveTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.8)',
+    margin: 0,
+  },
+  liveCount: {
+    fontSize: '13px',
+    color: 'rgba(255,255,255,0.3)',
+    padding: '2px 12px',
+    background: 'rgba(255,255,255,0.05)',
+    borderRadius: '20px',
+  },
+  liveLoading: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    padding: '20px',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  spinnerSmall: {
+    width: '20px',
+    height: '20px',
+    border: '2px solid rgba(255,215,0,0.1)',
+    borderTopColor: '#FFD700',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  liveEmpty: {
+    textAlign: 'center' as const,
+    padding: '20px',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  liveList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px',
+  },
+  liveItem: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '16px',
+    border: '2px solid',
+    transition: 'all 0.3s',
+  },
+  liveItemHeader: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '10px',
+  },
+  liveItemInfo: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'flex-start',
+  },
+  liveItemIcon: {
+    fontSize: '24px',
+  },
+  liveItemTitle: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    margin: '0 0 4px 0',
+  },
+  liveItemMeta: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap' as const,
+    fontSize: '12px',
+  },
+  liveItemMetaMobile: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap' as const,
+    fontSize: '11px',
+  },
+  liveItemDate: {
+    color: 'rgba(255,255,255,0.4)',
+  },
+  liveItemStatus: {
+    padding: '2px 10px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '600',
+  },
+  liveItemDesc: {
+    fontSize: '13px',
+    color: 'rgba(255,255,255,0.5)',
+    margin: '0',
+    paddingRight: '36px',
+  },
+  liveJoinBtn: {
+    padding: '8px 20px',
+    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+    color: 'white',
+    borderRadius: '8px',
+    border: 'none',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+    alignSelf: 'flex-start',
+    display: 'inline-block',
+    textAlign: 'center' as const,
+  },
+  liveWaiting: {
+    padding: '8px 16px',
+    background: 'rgba(245,158,11,0.1)',
+    color: '#f59e0b',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+    alignSelf: 'flex-start',
+  },
+
   sectionTitle: {
     fontSize: '22px',
     fontWeight: 'bold',
