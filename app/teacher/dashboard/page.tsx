@@ -28,6 +28,18 @@ export default function TeacherDashboard() {
     activeSubjects: 0,
   });
   
+  // ✅ التحقق من حجم الشاشة
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // ✅ ✅ نبذة عن المدرس
   const [aboutMe, setAboutMe] = useState('');
   const [editingAbout, setEditingAbout] = useState(false);
@@ -426,33 +438,33 @@ export default function TeacherDashboard() {
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerContent}>
-          <h1 style={styles.title}>👨‍🏫 لوحة تحكم المدرس</h1>
-          <div style={styles.userInfo}>
-            <span style={styles.userName}>{user?.name || 'مدرس'}</span>
-            <span style={styles.badge}>✅ معتمد</span>
+      <header style={isMobile ? styles.headerMobile : styles.header}>
+        <div style={isMobile ? styles.headerContentMobile : styles.headerContent}>
+          <h1 style={isMobile ? {...styles.title, fontSize: '18px'} : styles.title}>👨‍🏫 لوحة تحكم المدرس</h1>
+          <div style={isMobile ? styles.userInfoMobile : styles.userInfo}>
+            <span style={isMobile ? {...styles.userName, fontSize: '13px'} : styles.userName}>{user?.name || 'مدرس'}</span>
+            <span style={isMobile ? {...styles.badge, fontSize: '10px', padding: '2px 8px'} : styles.badge}>✅ معتمد</span>
           </div>
         </div>
       </header>
 
-      <main style={styles.main}>
-        <div style={styles.welcomeCard}>
-          <h2 style={styles.welcome}>مرحباً {user?.name} 👋</h2>
-          <p style={styles.description}>من هنا يمكنك إدارة موادك وطلابك والبثوث المباشرة.</p>
+      <main style={isMobile ? {...styles.main, padding: '15px 10px'} : styles.main}>
+        <div style={isMobile ? styles.welcomeCardMobile : styles.welcomeCard}>
+          <h2 style={isMobile ? {...styles.welcome, fontSize: '20px'} : styles.welcome}>مرحباً {user?.name} 👋</h2>
+          <p style={isMobile ? {...styles.description, fontSize: '13px'} : styles.description}>من هنا يمكنك إدارة موادك وطلابك والبثوث المباشرة.</p>
         </div>
 
         {/* ✅ ✅ نبذة عني */}
-        <div style={styles.aboutSection}>
+        <div style={isMobile ? styles.aboutSectionMobile : styles.aboutSection}>
           <div style={styles.aboutHeader}>
-            <h3 style={styles.aboutTitle}>📝 نبذة عني</h3>
+            <h3 style={isMobile ? {...styles.aboutTitle, fontSize: '15px'} : styles.aboutTitle}>📝 نبذة عني</h3>
             {!editingAbout && (
               <button
                 onClick={() => {
                   setEditingAbout(true);
                   setTempAbout(aboutMe);
                 }}
-                style={styles.editAboutBtn}
+                style={isMobile ? {...styles.editAboutBtn, fontSize: '11px', padding: '4px 10px'} : styles.editAboutBtn}
               >
                 ✏️ تعديل
               </button>
@@ -465,7 +477,7 @@ export default function TeacherDashboard() {
                 value={tempAbout}
                 onChange={(e) => setTempAbout(e.target.value)}
                 placeholder="اكتب نبذة عنك لتظهر للطلاب وأولياء الأمور..."
-                style={styles.aboutTextarea}
+                style={isMobile ? {...styles.aboutTextarea, fontSize: '13px', minHeight: '80px'} : styles.aboutTextarea}
                 rows={4}
               />
               <div style={styles.aboutActions}>
@@ -476,6 +488,8 @@ export default function TeacherDashboard() {
                     ...styles.saveAboutBtn,
                     opacity: savingAbout ? 0.5 : 1,
                     cursor: savingAbout ? 'not-allowed' : 'pointer',
+                    fontSize: isMobile ? '12px' : '14px',
+                    padding: isMobile ? '6px 14px' : '8px 20px',
                   }}
                 >
                   {savingAbout ? '⏳ جاري الحفظ...' : '💾 حفظ النبذة'}
@@ -485,7 +499,7 @@ export default function TeacherDashboard() {
                     setEditingAbout(false);
                     setTempAbout(aboutMe);
                   }}
-                  style={styles.cancelAboutBtn}
+                  style={isMobile ? {...styles.cancelAboutBtn, fontSize: '12px', padding: '6px 14px'} : styles.cancelAboutBtn}
                 >
                   إلغاء
                 </button>
@@ -502,9 +516,9 @@ export default function TeacherDashboard() {
           ) : (
             <div style={styles.aboutDisplay}>
               {aboutMe ? (
-                <p style={styles.aboutText}>{aboutMe}</p>
+                <p style={isMobile ? {...styles.aboutText, fontSize: '13px'} : styles.aboutText}>{aboutMe}</p>
               ) : (
-                <p style={styles.aboutEmpty}>
+                <p style={isMobile ? {...styles.aboutEmpty, fontSize: '12px'} : styles.aboutEmpty}>
                   لا توجد نبذة حالياً. اضغط على "تعديل" لإضافة نبذة عنك.
                 </p>
               )}
@@ -512,34 +526,34 @@ export default function TeacherDashboard() {
           )}
         </div>
 
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <span style={styles.statIcon}>📚</span>
+        <div style={isMobile ? styles.statsGridMobile : styles.statsGrid}>
+          <div style={isMobile ? styles.statCardMobile : styles.statCard}>
+            <span style={isMobile ? {...styles.statIcon, fontSize: '24px'} : styles.statIcon}>📚</span>
             <div>
-              <div style={styles.statNumber}>{stats.subjects}</div>
-              <div style={styles.statLabel}>إجمالي المواد</div>
+              <div style={isMobile ? {...styles.statNumber, fontSize: '18px'} : styles.statNumber}>{stats.subjects}</div>
+              <div style={isMobile ? {...styles.statLabel, fontSize: '11px'} : styles.statLabel}>إجمالي المواد</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <span style={styles.statIcon}>✅</span>
+          <div style={isMobile ? styles.statCardMobile : styles.statCard}>
+            <span style={isMobile ? {...styles.statIcon, fontSize: '24px'} : styles.statIcon}>✅</span>
             <div>
-              <div style={styles.statNumber}>{stats.activeSubjects}</div>
-              <div style={styles.statLabel}>مواد مفتوحة</div>
+              <div style={isMobile ? {...styles.statNumber, fontSize: '18px'} : styles.statNumber}>{stats.activeSubjects}</div>
+              <div style={isMobile ? {...styles.statLabel, fontSize: '11px'} : styles.statLabel}>مواد مفتوحة</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <span style={styles.statIcon}>👨‍🎓</span>
+          <div style={isMobile ? styles.statCardMobile : styles.statCard}>
+            <span style={isMobile ? {...styles.statIcon, fontSize: '24px'} : styles.statIcon}>👨‍🎓</span>
             <div>
-              <div style={styles.statNumber}>{stats.students}</div>
-              <div style={styles.statLabel}>طلاب مسجلين</div>
+              <div style={isMobile ? {...styles.statNumber, fontSize: '18px'} : styles.statNumber}>{stats.students}</div>
+              <div style={isMobile ? {...styles.statLabel, fontSize: '11px'} : styles.statLabel}>طلاب مسجلين</div>
             </div>
           </div>
         </div>
 
-        {/* ✅ ✅ قسم البث المباشر */}
-        <div style={styles.liveSection}>
-          <div style={styles.liveHeader}>
-            <h3 style={styles.liveTitle}>📺 إدارة البث المباشر</h3>
+        {/* ✅ ✅ قسم البث المباشر - معدل للهواتف */}
+        <div style={isMobile ? styles.liveSectionMobile : styles.liveSection}>
+          <div style={isMobile ? styles.liveHeaderMobile : styles.liveHeader}>
+            <h3 style={isMobile ? {...styles.liveTitle, fontSize: '15px'} : styles.liveTitle}>📺 إدارة البث المباشر</h3>
             <button
               onClick={() => {
                 setShowLiveForm(!showLiveForm);
@@ -548,9 +562,9 @@ export default function TeacherDashboard() {
                   setEditingLive(null);
                 }
               }}
-              style={styles.addLiveBtn}
+              style={isMobile ? {...styles.addLiveBtn, fontSize: '12px', padding: '6px 12px'} : styles.addLiveBtn}
             >
-              {showLiveForm ? '✕ إلغاء' : '➕ إضافة بث جديد'}
+              {showLiveForm ? '✕ إلغاء' : '➕ إضافة بث'}
             </button>
           </div>
 
@@ -561,33 +575,35 @@ export default function TeacherDashboard() {
                           liveMessage.includes('⚠️') ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
               color: liveMessage.includes('✅') ? '#34d399' : 
                     liveMessage.includes('⚠️') ? '#f59e0b' : '#f87171',
+              fontSize: isMobile ? '12px' : '14px',
+              padding: isMobile ? '8px 12px' : '10px 16px',
             }}>
               {liveMessage}
             </div>
           )}
 
           {showLiveForm && (
-            <div style={styles.liveFormContainer}>
-              <h4 style={styles.liveFormTitle}>
+            <div style={isMobile ? styles.liveFormContainerMobile : styles.liveFormContainer}>
+              <h4 style={isMobile ? {...styles.liveFormTitle, fontSize: '15px'} : styles.liveFormTitle}>
                 {editingLive ? '✏️ تعديل البث' : '➕ إضافة بث مباشر جديد'}
               </h4>
               
-              <div style={styles.liveFormGrid}>
+              <div style={isMobile ? styles.liveFormGridMobile : styles.liveFormGrid}>
                 {/* ✅ عنوان البث */}
                 <div style={styles.liveFormGroup}>
-                  <label style={styles.liveLabel}>عنوان البث *</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>عنوان البث *</label>
                   <input
                     type="text"
                     value={liveForm.title}
                     onChange={(e) => setLiveForm({ ...liveForm, title: e.target.value })}
-                    placeholder="مثال: مراجعة نهائية"
-                    style={styles.liveInput}
+                    placeholder="مثال: مراجعة"
+                    style={isMobile ? {...styles.liveInput, fontSize: '13px', padding: '6px 10px'} : styles.liveInput}
                   />
                 </div>
 
                 {/* ✅ المادة */}
                 <div style={styles.liveFormGroup}>
-                  <label style={styles.liveLabel}>المادة *</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>المادة *</label>
                   <select
                     value={liveForm.subjectId}
                     onChange={(e) => {
@@ -599,7 +615,7 @@ export default function TeacherDashboard() {
                         grade: subject?.grade || '',
                       });
                     }}
-                    style={styles.liveSelect}
+                    style={isMobile ? {...styles.liveSelect, fontSize: '13px', padding: '6px 10px'} : styles.liveSelect}
                   >
                     <option value="">اختر المادة</option>
                     {subjects.map(s => (
@@ -608,13 +624,13 @@ export default function TeacherDashboard() {
                   </select>
                 </div>
 
-                {/* ✅ ✅ المرحلة - قائمة بكل المراحل */}
+                {/* ✅ ✅ المرحلة */}
                 <div style={styles.liveFormGroup}>
-                  <label style={styles.liveLabel}>المرحلة *</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>المرحلة *</label>
                   <select
                     value={liveForm.grade}
                     onChange={(e) => setLiveForm({ ...liveForm, grade: e.target.value })}
-                    style={styles.liveSelect}
+                    style={isMobile ? {...styles.liveSelect, fontSize: '13px', padding: '6px 10px'} : styles.liveSelect}
                   >
                     <option value="">اختر المرحلة</option>
                     {grades.map(g => (
@@ -625,56 +641,56 @@ export default function TeacherDashboard() {
 
                 {/* ✅ رابط البث */}
                 <div style={styles.liveFormGroup}>
-                  <label style={styles.liveLabel}>رابط البث * (مخفي عن الطلاب)</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>رابط البث *</label>
                   <input
                     type="text"
                     value={liveForm.link}
                     onChange={(e) => setLiveForm({ ...liveForm, link: e.target.value })}
                     placeholder="https://www.youtube.com/live/..."
-                    style={styles.liveInput}
+                    style={isMobile ? {...styles.liveInput, fontSize: '13px', padding: '6px 10px'} : styles.liveInput}
                   />
                 </div>
 
                 {/* ✅ وقت الفتح */}
                 <div style={styles.liveFormGroup}>
-                  <label style={styles.liveLabel}>وقت الفتح *</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>وقت الفتح *</label>
                   <input
                     type="datetime-local"
                     value={liveForm.scheduledTime}
                     onChange={(e) => setLiveForm({ ...liveForm, scheduledTime: e.target.value })}
-                    style={styles.liveInput}
+                    style={isMobile ? {...styles.liveInput, fontSize: '13px', padding: '6px 10px'} : styles.liveInput}
                   />
                 </div>
 
                 {/* ✅ الرؤية */}
                 <div style={styles.liveFormGroup}>
-                  <label style={styles.liveLabel}>الرؤية</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>الرؤية</label>
                   <select
                     value={liveForm.isVisible ? 'true' : 'false'}
                     onChange={(e) => setLiveForm({ ...liveForm, isVisible: e.target.value === 'true' })}
-                    style={styles.liveSelect}
+                    style={isMobile ? {...styles.liveSelect, fontSize: '13px', padding: '6px 10px'} : styles.liveSelect}
                   >
-                    <option value="true">👁️ ظاهر للطلاب</option>
-                    <option value="false">🚫 مخفي عن الطلاب</option>
+                    <option value="true">👁️ ظاهر</option>
+                    <option value="false">🚫 مخفي</option>
                   </select>
                 </div>
 
                 {/* ✅ الوصف */}
                 <div style={{...styles.liveFormGroup, gridColumn: '1 / -1'}}>
-                  <label style={styles.liveLabel}>الوصف</label>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>الوصف</label>
                   <textarea
                     value={liveForm.description}
                     onChange={(e) => setLiveForm({ ...liveForm, description: e.target.value })}
                     placeholder="وصف البث..."
-                    style={styles.liveTextarea}
+                    style={isMobile ? {...styles.liveTextarea, fontSize: '13px', padding: '6px 10px', minHeight: '60px'} : styles.liveTextarea}
                     rows={2}
                   />
                 </div>
 
                 {/* ✅ ✅ اختيار المستهدفين */}
                 <div style={{...styles.liveFormGroup, gridColumn: '1 / -1'}}>
-                  <label style={styles.liveLabel}>المستهدفين</label>
-                  <div style={styles.targetOptions}>
+                  <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>المستهدفين</label>
+                  <div style={isMobile ? styles.targetOptionsMobile : styles.targetOptions}>
                     <button
                       type="button"
                       onClick={() => setLiveForm({ ...liveForm, openToAll: true, selectedStudents: [] })}
@@ -683,9 +699,11 @@ export default function TeacherDashboard() {
                         background: liveForm.openToAll ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
                         borderColor: liveForm.openToAll ? '#10b981' : 'rgba(255,255,255,0.1)',
                         color: liveForm.openToAll ? '#34d399' : 'rgba(255,255,255,0.5)',
+                        fontSize: isMobile ? '12px' : '14px',
+                        padding: isMobile ? '6px 12px' : '8px 20px',
                       }}
                     >
-                      👥 جميع طلاب المرحلة
+                      👥 جميع الطلاب
                     </button>
                     <button
                       type="button"
@@ -695,6 +713,8 @@ export default function TeacherDashboard() {
                         background: !liveForm.openToAll ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
                         borderColor: !liveForm.openToAll ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
                         color: !liveForm.openToAll ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+                        fontSize: isMobile ? '12px' : '14px',
+                        padding: isMobile ? '6px 12px' : '8px 20px',
                       }}
                     >
                       🎯 طلاب محددين
@@ -705,15 +725,15 @@ export default function TeacherDashboard() {
                 {/* ✅ ✅ اختيار طلاب محددين */}
                 {!liveForm.openToAll && (
                   <div style={{...styles.liveFormGroup, gridColumn: '1 / -1'}}>
-                    <label style={styles.liveLabel}>اختر الطلاب المستهدفين</label>
-                    <div style={styles.studentsCheckboxGrid}>
+                    <label style={isMobile ? {...styles.liveLabel, fontSize: '12px'} : styles.liveLabel}>اختر الطلاب</label>
+                    <div style={isMobile ? styles.studentsCheckboxGridMobile : styles.studentsCheckboxGrid}>
                       {studentsList
                         .filter(student => {
                           if (!liveForm.grade) return true;
                           return student.grade === liveForm.grade;
                         })
                         .map((student) => (
-                          <label key={student.id} style={styles.studentCheckboxLabel}>
+                          <label key={student.id} style={isMobile ? styles.studentCheckboxLabelMobile : styles.studentCheckboxLabel}>
                             <input
                               type="checkbox"
                               checked={liveForm.selectedStudents.includes(student.id)}
@@ -732,12 +752,14 @@ export default function TeacherDashboard() {
                               }}
                               style={styles.liveCheckbox}
                             />
-                            {student.name} 
-                            {student.grade && ` (${getGradeLabel(student.grade)})`}
+                            <span style={isMobile ? {fontSize: '12px'} : {}}>
+                              {student.name} 
+                              {student.grade && ` (${getGradeLabel(student.grade)})`}
+                            </span>
                           </label>
                         ))}
                       {studentsList.filter(s => s.grade === liveForm.grade || !liveForm.grade).length === 0 && (
-                        <p style={styles.noStudentsText}>
+                        <p style={isMobile ? {...styles.noStudentsText, fontSize: '12px'} : styles.noStudentsText}>
                           {liveForm.grade 
                             ? `⚠️ لا يوجد طلاب في مرحلة ${getGradeLabel(liveForm.grade)}`
                             : '⚠️ يرجى اختيار المرحلة أولاً'}
@@ -748,7 +770,7 @@ export default function TeacherDashboard() {
                 )}
               </div>
 
-              <div style={styles.liveFormActions}>
+              <div style={isMobile ? styles.liveFormActionsMobile : styles.liveFormActions}>
                 <button
                   onClick={saveLiveStream}
                   disabled={savingLive}
@@ -756,9 +778,11 @@ export default function TeacherDashboard() {
                     ...styles.saveLiveBtn,
                     opacity: savingLive ? 0.5 : 1,
                     cursor: savingLive ? 'not-allowed' : 'pointer',
+                    fontSize: isMobile ? '13px' : '14px',
+                    padding: isMobile ? '8px 16px' : '8px 24px',
                   }}
                 >
-                  {savingLive ? '⏳ جاري الحفظ...' : editingLive ? '💾 تحديث البث' : '💾 إضافة البث'}
+                  {savingLive ? '⏳ جاري الحفظ...' : editingLive ? '💾 تحديث' : '💾 إضافة'}
                 </button>
                 <button
                   onClick={() => {
@@ -766,7 +790,7 @@ export default function TeacherDashboard() {
                     setEditingLive(null);
                     resetLiveForm();
                   }}
-                  style={styles.cancelLiveBtn}
+                  style={isMobile ? {...styles.cancelLiveBtn, fontSize: '13px', padding: '8px 16px'} : styles.cancelLiveBtn}
                 >
                   إلغاء
                 </button>
@@ -774,13 +798,13 @@ export default function TeacherDashboard() {
             </div>
           )}
 
-          {/* ✅ قائمة البثوث */}
+          {/* ✅ قائمة البثوث - معدلة للهواتف */}
           <div style={styles.liveStreamsList}>
             {liveStreams.length === 0 ? (
-              <div style={styles.emptyLive}>
-                <span>📺</span>
-                <p>لا توجد بثوث مباشرة</p>
-                <p style={styles.emptySub}>اضغط على "إضافة بث جديد" لإنشاء بث</p>
+              <div style={isMobile ? styles.emptyLiveMobile : styles.emptyLive}>
+                <span style={isMobile ? {fontSize: '32px'} : {}}>📺</span>
+                <p style={isMobile ? {fontSize: '13px'} : {}}>لا توجد بثوث مباشرة</p>
+                <p style={isMobile ? {...styles.emptySub, fontSize: '12px'} : styles.emptySub}>اضغط على "إضافة بث جديد" لإنشاء بث</p>
               </div>
             ) : (
               liveStreams.map((stream) => {
@@ -793,27 +817,32 @@ export default function TeacherDashboard() {
                     ...styles.liveStreamCard,
                     opacity: stream.isVisible ? 1 : 0.5,
                     borderColor: isOpen ? '#10b981' : '#f59e0b',
+                    padding: isMobile ? '12px 14px' : '16px 20px',
                   }}>
-                    <div style={styles.liveStreamHeader}>
+                    <div style={isMobile ? styles.liveStreamHeaderMobile : styles.liveStreamHeader}>
                       <div style={styles.liveStreamInfo}>
-                        <span style={styles.liveStreamIcon}>📺</span>
+                        <span style={isMobile ? {...styles.liveStreamIcon, fontSize: '22px'} : styles.liveStreamIcon}>📺</span>
                         <div>
-                          <h4 style={styles.liveStreamTitle}>{stream.title}</h4>
-                          <div style={styles.liveStreamMeta}>
-                            <span>📚 {subjectName}</span>
-                            <span>📖 {gradeLabel}</span>
-                            <span>📅 {formatDate(stream.scheduledTime)}</span>
+                          <h4 style={isMobile ? {...styles.liveStreamTitle, fontSize: '14px'} : styles.liveStreamTitle}>{stream.title}</h4>
+                          <div style={isMobile ? styles.liveStreamMetaMobile : styles.liveStreamMeta}>
+                            <span style={isMobile ? {fontSize: '10px'} : {}}>📚 {subjectName}</span>
+                            <span style={isMobile ? {fontSize: '10px'} : {}}>📖 {gradeLabel}</span>
+                            <span style={isMobile ? {fontSize: '10px'} : {}}>📅 {formatDate(stream.scheduledTime)}</span>
                             <span style={{
                               ...styles.liveStreamStatus,
                               background: isOpen ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
                               color: isOpen ? '#34d399' : '#f59e0b',
+                              fontSize: isMobile ? '9px' : '11px',
+                              padding: isMobile ? '1px 6px' : '2px 10px',
                             }}>
-                              {isOpen ? '🟢 مفتوح الآن' : '⏳ سيُفتح قريباً'}
+                              {isOpen ? '🟢 مفتوح' : '⏳ سيُفتح'}
                             </span>
                             <span style={{
                               ...styles.liveStreamStatus,
                               background: stream.isVisible ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)',
                               color: stream.isVisible ? '#60a5fa' : '#f87171',
+                              fontSize: isMobile ? '9px' : '11px',
+                              padding: isMobile ? '1px 6px' : '2px 10px',
                             }}>
                               {stream.isVisible ? '👁️ ظاهر' : '🚫 مخفي'}
                             </span>
@@ -822,8 +851,10 @@ export default function TeacherDashboard() {
                                 ...styles.liveStreamStatus,
                                 background: 'rgba(139,92,246,0.15)',
                                 color: '#a78bfa',
+                                fontSize: isMobile ? '9px' : '11px',
+                                padding: isMobile ? '1px 6px' : '2px 10px',
                               }}>
-                                👤 {stream.selectedStudents?.length || 0} طالب
+                                👤 {stream.selectedStudents?.length || 0}
                               </span>
                             )}
                             {stream.openToAll && (
@@ -831,45 +862,49 @@ export default function TeacherDashboard() {
                                 ...styles.liveStreamStatus,
                                 background: 'rgba(16,185,129,0.1)',
                                 color: '#34d399',
+                                fontSize: isMobile ? '9px' : '11px',
+                                padding: isMobile ? '1px 6px' : '2px 10px',
                               }}>
-                                👥 جميع الطلاب
+                                👥 جميع
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div style={styles.liveStreamActions}>
+                      <div style={isMobile ? styles.liveStreamActionsMobile : styles.liveStreamActions}>
                         <button
                           onClick={() => toggleVisibility(stream)}
                           style={{
                             ...styles.liveActionBtn,
                             background: stream.isVisible ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
                             color: stream.isVisible ? '#f87171' : '#34d399',
+                            fontSize: isMobile ? '10px' : '12px',
+                            padding: isMobile ? '3px 8px' : '4px 12px',
                           }}
                         >
-                          {stream.isVisible ? '🚫 إخفاء' : '👁️ إظهار'}
+                          {stream.isVisible ? '🚫' : '👁️'}
                         </button>
                         <button
                           onClick={() => editLiveStream(stream)}
-                          style={{ ...styles.liveActionBtn, background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}
+                          style={{ ...styles.liveActionBtn, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: isMobile ? '10px' : '12px', padding: isMobile ? '3px 8px' : '4px 12px' }}
                         >
-                          ✏️ تعديل
+                          ✏️
                         </button>
                         <button
                           onClick={() => deleteLiveStream(stream.id)}
-                          style={{ ...styles.liveActionBtn, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}
+                          style={{ ...styles.liveActionBtn, background: 'rgba(239,68,68,0.1)', color: '#f87171', fontSize: isMobile ? '10px' : '12px', padding: isMobile ? '3px 8px' : '4px 12px' }}
                         >
-                          🗑️ حذف
+                          🗑️
                         </button>
                       </div>
                     </div>
                     {stream.description && (
-                      <p style={styles.liveStreamDesc}>{stream.description}</p>
+                      <p style={isMobile ? {...styles.liveStreamDesc, fontSize: '12px', margin: '4px 0 0 34px'} : styles.liveStreamDesc}>{stream.description}</p>
                     )}
                     {isOpen && stream.isVisible && (
-                      <div style={styles.liveStreamLink}>
-                        <span>🔗 رابط البث (للطلاب فقط):</span>
-                        <a href={stream.link} target="_blank" style={styles.liveStreamLinkBtn}>
+                      <div style={isMobile ? styles.liveStreamLinkMobile : styles.liveStreamLink}>
+                        <span style={isMobile ? {fontSize: '11px'} : {}}>🔗 رابط البث:</span>
+                        <a href={stream.link} target="_blank" style={isMobile ? {...styles.liveStreamLinkBtn, fontSize: '11px', padding: '3px 12px'} : styles.liveStreamLinkBtn}>
                           🚀 دخول البث
                         </a>
                       </div>
@@ -881,54 +916,54 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div style={styles.grid}>
-          <Link href="/teacher/subjects" style={styles.cardLink}>
-            <span style={styles.cardIcon}>📚</span>
-            <span style={styles.cardTitle}>المواد الخاصة بي</span>
-            <span style={styles.cardDesc}>عرض وإدارة المواد التي عينها لك الأدمن</span>
+        <div style={isMobile ? styles.gridMobile : styles.grid}>
+          <Link href="/teacher/subjects" style={isMobile ? styles.cardLinkMobile : styles.cardLink}>
+            <span style={isMobile ? {...styles.cardIcon, fontSize: '28px'} : styles.cardIcon}>📚</span>
+            <span style={isMobile ? {...styles.cardTitle, fontSize: '14px'} : styles.cardTitle}>المواد الخاصة بي</span>
+            <span style={isMobile ? {...styles.cardDesc, fontSize: '11px'} : styles.cardDesc}>عرض وإدارة المواد</span>
           </Link>
 
-          <Link href="/teacher/students" style={styles.cardLink}>
-            <span style={styles.cardIcon}>👨‍🎓</span>
-            <span style={styles.cardTitle}>الطلاب</span>
-            <span style={styles.cardDesc}>متابعة الطلاب المسجلين في موادك</span>
+          <Link href="/teacher/students" style={isMobile ? styles.cardLinkMobile : styles.cardLink}>
+            <span style={isMobile ? {...styles.cardIcon, fontSize: '28px'} : styles.cardIcon}>👨‍🎓</span>
+            <span style={isMobile ? {...styles.cardTitle, fontSize: '14px'} : styles.cardTitle}>الطلاب</span>
+            <span style={isMobile ? {...styles.cardDesc, fontSize: '11px'} : styles.cardDesc}>متابعة الطلاب</span>
           </Link>
 
-          <Link href="/teacher/exams" style={styles.cardLink}>
-            <span style={styles.cardIcon}>📝</span>
-            <span style={styles.cardTitle}>الامتحانات</span>
-            <span style={styles.cardDesc}>إدارة امتحانات موادك</span>
+          <Link href="/teacher/exams" style={isMobile ? styles.cardLinkMobile : styles.cardLink}>
+            <span style={isMobile ? {...styles.cardIcon, fontSize: '28px'} : styles.cardIcon}>📝</span>
+            <span style={isMobile ? {...styles.cardTitle, fontSize: '14px'} : styles.cardTitle}>الامتحانات</span>
+            <span style={isMobile ? {...styles.cardDesc, fontSize: '11px'} : styles.cardDesc}>إدارة امتحاناتك</span>
           </Link>
         </div>
 
-        {/* ✅ ✅ عرض مواد المدرس */}
+        {/* ✅ ✅ عرض مواد المدرس - معدل للهواتف */}
         {subjects.length > 0 && (
-          <div style={styles.subjectsSection}>
-            <h3 style={styles.subjectsTitle}>📚 موادك</h3>
-            <div style={styles.subjectsGrid}>
+          <div style={isMobile ? styles.subjectsSectionMobile : styles.subjectsSection}>
+            <h3 style={isMobile ? {...styles.subjectsTitle, fontSize: '16px'} : styles.subjectsTitle}>📚 موادك</h3>
+            <div style={isMobile ? styles.subjectsGridMobile : styles.subjectsGrid}>
               {subjects.map((subject) => (
-                <div key={subject.id} style={styles.subjectCard}>
-                  <div style={styles.subjectInfo}>
-                    <span style={styles.subjectIcon}>{subject.icon || '📚'}</span>
+                <div key={subject.id} style={isMobile ? styles.subjectCardMobile : styles.subjectCard}>
+                  <div style={isMobile ? styles.subjectInfoMobile : styles.subjectInfo}>
+                    <span style={isMobile ? {...styles.subjectIcon, fontSize: '22px'} : styles.subjectIcon}>{subject.icon || '📚'}</span>
                     <div>
-                      <h4 style={styles.subjectName}>{subject.name}</h4>
-                      <span style={styles.subjectStatus}>
+                      <h4 style={isMobile ? {...styles.subjectName, fontSize: '13px'} : styles.subjectName}>{subject.name}</h4>
+                      <span style={isMobile ? {...styles.subjectStatus, fontSize: '10px'} : styles.subjectStatus}>
                         {subject.isActive !== false ? '✅ نشط' : '⛔ غير نشط'}
                       </span>
                     </div>
                   </div>
-                  <div style={styles.subjectActions}>
+                  <div style={isMobile ? styles.subjectActionsMobile : styles.subjectActions}>
                     <Link 
                       href={`/teacher/exams?subjectId=${subject.id}`} 
-                      style={styles.examsButton}
+                      style={isMobile ? {...styles.examsButton, fontSize: '11px', padding: '4px 10px'} : styles.examsButton}
                     >
-                      📝 إدارة الامتحانات
+                      📝 الامتحانات
                     </Link>
                     <Link
                       href={`/teacher/module/${subject.id}`}
-                      style={{ ...styles.actionBtn, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', textDecoration: 'none' }}
+                      style={isMobile ? {...styles.actionBtn, fontSize: '11px', padding: '4px 10px'} : {...styles.actionBtn, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', textDecoration: 'none' }}
                     >
-                      📖 إدارة المحتوى
+                      📖 المحتوى
                     </Link>
                   </div>
                 </div>
@@ -941,7 +976,7 @@ export default function TeacherDashboard() {
   );
 }
 
-// ✅ ✅ جميع الأنماط
+// ✅ ✅ جميع الأنماط (مع الأنماط الجديدة للهواتف)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -973,12 +1008,25 @@ const styles = {
     borderBottom: '1px solid rgba(255,255,255,0.05)',
     background: 'rgba(255,255,255,0.02)',
   },
+  headerMobile: {
+    padding: '12px 15px',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    background: 'rgba(255,255,255,0.02)',
+  },
   headerContent: {
     maxWidth: '1200px',
     margin: '0 auto',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerContentMobile: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '8px',
   },
   title: {
     fontSize: '24px',
@@ -992,6 +1040,11 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+  },
+  userInfoMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
   },
   userName: {
     fontSize: '16px',
@@ -1016,6 +1069,13 @@ const styles = {
     marginBottom: '25px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  welcomeCardMobile: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '15px',
+    marginBottom: '15px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   welcome: {
     fontSize: '28px',
     fontWeight: 'bold',
@@ -1026,11 +1086,19 @@ const styles = {
     color: 'rgba(255,255,255,0.5)',
     margin: 0,
   },
+  
+  // ✅ ✅ أنماط الإحصائيات - معدلة للهواتف
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '15px',
     marginBottom: '30px',
+  },
+  statsGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '8px',
+    marginBottom: '15px',
   },
   statCard: {
     display: 'flex',
@@ -1040,6 +1108,17 @@ const styles = {
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '12px',
     border: '1px solid rgba(255,255,255,0.05)',
+  },
+  statCardMobile: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '4px',
+    padding: '12px 8px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    textAlign: 'center' as const,
   },
   statIcon: {
     fontSize: '32px',
@@ -1053,6 +1132,7 @@ const styles = {
     color: 'rgba(255,255,255,0.4)',
   },
 
+  // ✅ ✅ أنماط البث المباشر - معدلة للهواتف
   liveSection: {
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '16px',
@@ -1060,11 +1140,26 @@ const styles = {
     marginBottom: '25px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  liveSectionMobile: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '12px 14px',
+    marginBottom: '15px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   liveHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '15px',
+  },
+  liveHeaderMobile: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+    flexWrap: 'wrap' as const,
+    gap: '8px',
   },
   liveTitle: {
     fontSize: '18px',
@@ -1097,6 +1192,13 @@ const styles = {
     marginBottom: '20px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  liveFormContainerMobile: {
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px',
+    padding: '12px',
+    marginBottom: '12px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   liveFormTitle: {
     fontSize: '16px',
     fontWeight: 'bold',
@@ -1107,6 +1209,11 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '12px',
+  },
+  liveFormGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '8px',
   },
   liveFormGroup: {
     display: 'flex',
@@ -1167,6 +1274,11 @@ const styles = {
     gap: '10px',
     flexWrap: 'wrap' as const,
   },
+  targetOptionsMobile: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap' as const,
+  },
   targetBtn: {
     padding: '8px 20px',
     borderRadius: '8px',
@@ -1193,11 +1305,30 @@ const styles = {
     borderRadius: '8px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
+  studentsCheckboxGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '4px',
+    maxHeight: '150px',
+    overflowY: 'auto' as const,
+    padding: '8px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '6px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
   studentCheckboxLabel: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
     fontSize: '13px',
+    color: 'rgba(255,255,255,0.7)',
+    cursor: 'pointer',
+  },
+  studentCheckboxLabelMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '12px',
     color: 'rgba(255,255,255,0.7)',
     cursor: 'pointer',
   },
@@ -1211,6 +1342,12 @@ const styles = {
     display: 'flex',
     gap: '10px',
     marginTop: '15px',
+  },
+  liveFormActionsMobile: {
+    display: 'flex',
+    gap: '6px',
+    marginTop: '10px',
+    flexWrap: 'wrap' as const,
   },
   saveLiveBtn: {
     padding: '8px 24px',
@@ -1244,6 +1381,11 @@ const styles = {
     padding: '30px 20px',
     color: 'rgba(255,255,255,0.3)',
   },
+  emptyLiveMobile: {
+    textAlign: 'center' as const,
+    padding: '20px 12px',
+    color: 'rgba(255,255,255,0.3)',
+  },
   emptySub: {
     fontSize: '13px',
     color: 'rgba(255,255,255,0.2)',
@@ -1261,6 +1403,11 @@ const styles = {
     alignItems: 'flex-start',
     flexWrap: 'wrap' as const,
     gap: '10px',
+  },
+  liveStreamHeaderMobile: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '8px',
   },
   liveStreamInfo: {
     display: 'flex',
@@ -1282,6 +1429,13 @@ const styles = {
     fontSize: '12px',
     color: 'rgba(255,255,255,0.4)',
   },
+  liveStreamMetaMobile: {
+    display: 'flex',
+    gap: '4px',
+    flexWrap: 'wrap' as const,
+    fontSize: '10px',
+    color: 'rgba(255,255,255,0.4)',
+  },
   liveStreamStatus: {
     padding: '2px 10px',
     borderRadius: '12px',
@@ -1291,6 +1445,11 @@ const styles = {
   liveStreamActions: {
     display: 'flex',
     gap: '6px',
+    flexWrap: 'wrap' as const,
+  },
+  liveStreamActionsMobile: {
+    display: 'flex',
+    gap: '4px',
     flexWrap: 'wrap' as const,
   },
   liveActionBtn: {
@@ -1318,6 +1477,17 @@ const styles = {
     color: 'rgba(255,255,255,0.4)',
     flexWrap: 'wrap' as const,
   },
+  liveStreamLinkMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginTop: '6px',
+    paddingTop: '6px',
+    borderTop: '1px solid rgba(255,255,255,0.05)',
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.4)',
+    flexWrap: 'wrap' as const,
+  },
   liveStreamLinkBtn: {
     padding: '4px 16px',
     background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
@@ -1329,11 +1499,19 @@ const styles = {
     transition: 'all 0.3s',
   },
 
+  // ✅ ✅ أنماط نبذة عني - معدلة للهواتف
   aboutSection: {
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '16px',
     padding: '20px 25px',
     marginBottom: '25px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  aboutSectionMobile: {
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
+    padding: '12px 14px',
+    marginBottom: '15px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
   aboutHeader: {
@@ -1427,11 +1605,18 @@ const styles = {
     margin: 0,
   },
 
+  // ✅ ✅ أنماط الكروت - معدلة للهواتف
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
     gap: '20px',
     marginBottom: '30px',
+  },
+  gridMobile: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '10px',
+    marginBottom: '15px',
   },
   cardLink: {
     display: 'flex',
@@ -1440,6 +1625,18 @@ const styles = {
     padding: '25px 20px',
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '16px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    textDecoration: 'none',
+    color: 'white',
+    transition: 'all 0.3s',
+  },
+  cardLinkMobile: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    padding: '14px 10px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
     border: '1px solid rgba(255,255,255,0.05)',
     textDecoration: 'none',
     color: 'white',
@@ -1459,11 +1656,20 @@ const styles = {
     color: 'rgba(255,255,255,0.4)',
     textAlign: 'center' as const,
   },
+  
+  // ✅ ✅ أنماط المواد - معدلة للهواتف
   subjectsSection: {
     marginTop: '10px',
     padding: '20px',
     background: 'rgba(255,255,255,0.02)',
     borderRadius: '16px',
+    border: '1px solid rgba(255,255,255,0.05)',
+  },
+  subjectsSectionMobile: {
+    marginTop: '10px',
+    padding: '12px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '12px',
     border: '1px solid rgba(255,255,255,0.05)',
   },
   subjectsTitle: {
@@ -1477,6 +1683,11 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
     gap: '15px',
   },
+  subjectsGridMobile: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '8px',
+  },
   subjectCard: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1488,10 +1699,25 @@ const styles = {
     flexWrap: 'wrap' as const,
     gap: '10px',
   },
+  subjectCardMobile: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'stretch',
+    padding: '10px 12px',
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.05)',
+    gap: '8px',
+  },
   subjectInfo: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+  },
+  subjectInfoMobile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
   },
   subjectIcon: {
     fontSize: '28px',
@@ -1508,6 +1734,11 @@ const styles = {
   subjectActions: {
     display: 'flex',
     gap: '8px',
+  },
+  subjectActionsMobile: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap' as const,
   },
   examsButton: {
     padding: '6px 14px',
