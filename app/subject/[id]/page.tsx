@@ -77,6 +77,8 @@ export default function SubjectPage() {
       return;
     }
     const parsed = JSON.parse(userData);
+    console.log('👤 بيانات المستخدم:', parsed);
+    console.log('📌 مرحلة الطالب:', parsed.grade);
     setUser(parsed);
     loadSubject(parsed.id);
   }, [subjectId]);
@@ -237,10 +239,25 @@ export default function SubjectPage() {
     }
   };
 
-  // ✅ جلب بيانات المادة والكورسات
+  // ✅ ✅ ✅ جلب بيانات المادة والكورسات (معدل مع تحسين الفلترة)
   const loadSubject = async (studentId: string) => {
     try {
       setLoading(true);
+      
+      // ✅ ✅ ✅ التأكد من أحدث بيانات المستخدم من localStorage
+      const userData = localStorage.getItem('currentUser');
+      let currentUser = user;
+      if (userData) {
+        try {
+          const parsed = JSON.parse(userData);
+          console.log('📌 بيانات المستخدم من localStorage:', parsed);
+          console.log('📌 مرحلة الطالب من localStorage:', parsed.grade);
+          currentUser = parsed;
+          setUser(parsed);
+        } catch (e) {
+          console.error('❌ خطأ في قراءة localStorage:', e);
+        }
+      }
       
       const subjectRef = doc(db, 'subjects', subjectId);
       const subjectDoc = await getDoc(subjectRef);
@@ -257,6 +274,7 @@ export default function SubjectPage() {
         await loadTeacherAbout(subjectData.teacherId);
       }
 
+      // ✅ جلب الكورسات
       const coursesQuery = query(
         collection(db, 'courses'),
         where('subjectId', '==', subjectId),
@@ -268,10 +286,29 @@ export default function SubjectPage() {
         ...doc.data(),
       }));
 
-      const studentGrade = user?.grade || '1-prep';
-      coursesData = coursesData.filter(course => course.grade === studentGrade);
+      // ✅ ✅ ✅ استخدام currentUser بدلاً من user
+      const studentGrade = currentUser?.grade || '1-prep';
+      console.log('📌 مرحلة الطالب النهائية:', studentGrade);
+      console.log('📌 جميع الكورسات قبل الفلترة:', coursesData.map(c => ({ 
+        id: c.id, 
+        title: c.title, 
+        grade: c.grade 
+      })));
+      
+      // ✅ ✅ ✅ فلترة الكورسات حسب المرحلة
+      coursesData = coursesData.filter(course => {
+        if (!course.grade) return false;
+        const isMatch = course.grade === studentGrade;
+        console.log(`📌 كورس ${course.title}: مرحلته ${course.grade} ${isMatch ? '✅ متطابق' : '❌ غير متطابق'} مع ${studentGrade}`);
+        return isMatch;
+      });
+      
+      console.log('📌 الكورسات بعد الفلترة:', coursesData.map(c => ({ id: c.id, title: c.title, grade: c.grade })));
+      
+      // ✅ ترتيب الكورسات
       coursesData.sort((a, b) => (a.order || 0) - (b.order || 0));
 
+      // ✅ جلب عدد الدروس لكل كورس
       for (const course of coursesData) {
         const lessonsQuery = query(
           collection(db, 'lessons'),
@@ -281,6 +318,7 @@ export default function SubjectPage() {
         course.lessonsCount = lessonsSnapshot.size;
       }
 
+      // ✅ جلب الكورسات المفتوحة للطالب
       const openedSnapshot = await getDocs(
         query(
           collection(db, 'student_courses'),
@@ -298,6 +336,7 @@ export default function SubjectPage() {
 
       setCourses(coursesData);
 
+      // ✅ التحقق من التسجيل
       const enrolledSnapshot = await getDocs(
         query(
           collection(db, 'student_subjects'),
@@ -583,7 +622,7 @@ export default function SubjectPage() {
           )}
         </div>
 
-        {/* ✅ ✅ قسم البث المباشر - مع العد التنازلي */}
+        {/* ✅ ✅ قسم البث المباشر */}
         {isEnrolled && (
           <div style={isMobile ? styles.liveSectionMobile : styles.liveSection}>
             <div style={styles.liveHeader}>
@@ -669,14 +708,22 @@ export default function SubjectPage() {
           </div>
         )}
 
-        {/* ✅ قائمة الكورسات */}
-        <h2 style={isMobile ? {...styles.sectionTitle, fontSize: '18px'} : styles.sectionTitle}>📖 الكورسات المتاحة</h2>
+        {/* ✅ ✅ قائمة الكورسات - معدلة */}
+        <h2 style={isMobile ? {...styles.sectionTitle, fontSize: '18px'} : styles.sectionTitle}>
+          📖 الكورسات المتاحة
+          {user?.grade && ` (مرحلة ${getGradeLabel(user.grade)})`}
+        </h2>
         
         {courses.length === 0 ? (
           <div style={styles.emptyState}>
             <span style={isMobile ? {...styles.emptyIcon, fontSize: '40px'} : styles.emptyIcon}>📭</span>
-            <p style={isMobile ? {fontSize: '14px'} : {}}>لا توجد كورسات متاحة لمرحلتك</p>
-            <p style={isMobile ? {...styles.emptySub, fontSize: '12px'} : styles.emptySub}>سيتم إضافة كورسات قريباً</p>
+            <p style={isMobile ? {fontSize: '14px'} : {}}>
+              لا توجد كورسات متاحة لمرحلتك
+              {user?.grade && ` (${getGradeLabel(user.grade)})`}
+            </p>
+            <p style={isMobile ? {...styles.emptySub, fontSize: '12px'} : styles.emptySub}>
+              سيتم إضافة كورسات لهذه المرحلة قريباً
+            </p>
           </div>
         ) : (
           <div style={isMobile ? styles.coursesGridMobile : styles.coursesGrid}>
