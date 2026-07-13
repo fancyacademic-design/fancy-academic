@@ -389,12 +389,12 @@ export default function RegisterPage() {
                     <label style={styles.label}><span style={styles.labelIcon}>📚</span>السنة الدراسية</label>
                     <select name="grade" required style={styles.select}>
                       <option value="" disabled selected>اختر مرحلتك الدراسية</option>
-                      <option value="1-prep">📘 الصف الأول الإعدادي</option>
-                      <option value="2-prep">📗 الصف الثاني الإعدادي</option>
-                      <option value="3-prep">📕 الصف الثالث الإعدادي</option>
-                      <option value="1-secondary">📙 الصف الأول الثانوي</option>
-                      <option value="2-secondary">📔 الصف الثاني الثانوي</option>
-                      <option value="3-secondary">📒 الصف الثالث الثانوي</option>
+                      <option value="1-prep">📘 الصف الأول الإعدادي (الصف السابع)</option>
+                      <option value="2-prep">📗 الصف الثاني الإعدادي (الصف الثامن)</option>
+                      <option value="3-prep">📕 الصف الثالث الإعدادي (الصف التاسع)</option>
+                      <option value="1-secondary">📙 الصف الأول الثانوي (الصف العاشر)</option>
+                      <option value="2-secondary">📔 الصف الثاني الثانوي (الصف الحادي عشر)</option>
+                      <option value="3-secondary">📒 الصف الثالث الثانوي (الصف الثاني عشر)</option>
                     </select>
                   </div>
                   
